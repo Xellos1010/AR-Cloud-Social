@@ -1,6 +1,4 @@
-﻿// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
-
-Shader "Custom/TransparentUnlit" {
+﻿Shader "Custom/TransparentUnlit" {
     Properties {
         _BaseColor ("Base Color", Color) = (1.0,1.0,1.0,1.0)
         _MainTex ("Base (RGBA)", 2D) = "white" {}

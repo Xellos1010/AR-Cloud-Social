@@ -1,5 +1,5 @@
 /*===============================================================================
-Copyright (c) 2015-2016 PTC Inc. All Rights Reserved.
+Copyright (c) 2015-2018 PTC Inc. All Rights Reserved.
  
 Copyright (c) 2015 Qualcomm Connected Experiences, Inc. All Rights Reserved.
  
@@ -8,128 +8,140 @@ countries.
 ===============================================================================*/
 using UnityEngine;
 using UnityEngine.UI;
-using System.Collections;
 using Vuforia;
+
+using System.Collections;
 
 public class MenuOptions : MonoBehaviour
 {
     #region PRIVATE_MEMBERS
-    private CameraSettings mCamSettings = null;
-    private TrackableSettings mTrackableSettings = null;
-    private MenuAnimator mMenuAnim = null;
+    CameraSettings m_CameraSettings;
+    TrackableSettings m_TrackableSettings;
+    Toggle m_DeviceTrackerToggle, m_AutofocusToggle, m_FlashToggle;
+    Canvas m_OptionsMenuCanvas;
+    OptionsConfig m_OptionsConfig;
     #endregion //PRIVATE_MEMBERS
 
+    public bool IsDisplayed { get; private set; }
 
     #region MONOBEHAVIOUR_METHODS
     protected virtual void Start()
     {
-        mCamSettings = FindObjectOfType<CameraSettings>();
-        mTrackableSettings = FindObjectOfType<TrackableSettings>();
-        mMenuAnim = FindObjectOfType<MenuAnimator>();
+        m_CameraSettings = FindObjectOfType<CameraSettings>();
+        m_TrackableSettings = FindObjectOfType<TrackableSettings>();
+        m_OptionsConfig = FindObjectOfType<OptionsConfig>();
+        m_OptionsMenuCanvas = GetComponentInChildren<Canvas>(true);
+        m_DeviceTrackerToggle = FindUISelectableWithText<Toggle>("Tracker");
+        m_AutofocusToggle = FindUISelectableWithText<Toggle>("Autofocus");
+        m_FlashToggle = FindUISelectableWithText<Toggle>("Flash");
+
+        var vuforia = VuforiaARController.Instance;
+        vuforia.RegisterOnPauseCallback(OnPaused);
     }
     #endregion //MONOBEHAVIOUR_METHODS
 
 
     #region PUBLIC_METHODS
-    public void ShowAboutPage()
+
+    public void ToggleAutofocus(bool enable)
     {
-#if (UNITY_5_2 || UNITY_5_1 || UNITY_5_0)
-        Application.LoadLevel("Vuforia-1-About");
-#else
-        UnityEngine.SceneManagement.SceneManager.LoadScene("Vuforia-1-About");
-#endif
+        if (m_CameraSettings)
+            m_CameraSettings.SwitchAutofocus(enable);
     }
 
-    public void ToggleAutofocus()
+    public void ToggleTorch(bool enable)
     {
-        Toggle autofocusToggle = FindUISelectableWithText<Toggle>("Autofocus");
-        if (autofocusToggle && mCamSettings)
-            mCamSettings.SwitchAutofocus(autofocusToggle.isOn);
-        
-        CloseMenu();
-    }
-
-    public void ToggleTorch()
-    {
-        Toggle flashToggle = FindUISelectableWithText<Toggle>("Flash");
-        if (flashToggle && mCamSettings) 
+        if (m_FlashToggle && m_CameraSettings)
         {
-            mCamSettings.SwitchFlashTorch (flashToggle.isOn);
+            m_CameraSettings.SwitchFlashTorch(enable);
 
             // Update UI toggle status (ON/OFF) in case the flash switch failed
-            flashToggle.isOn = mCamSettings.IsFlashTorchEnabled();
+            m_FlashToggle.isOn = m_CameraSettings.IsFlashTorchEnabled();
         }
-        CloseMenu();
     }
 
-    public void SelectCamera(bool front)
-    {
-        if (mCamSettings)
-            mCamSettings.SelectCamera(front ? CameraDevice.CameraDirection.CAMERA_FRONT : CameraDevice.CameraDirection.CAMERA_BACK);
-        
-        CloseMenu();
-    }
 
-    public void ToggleExtendedTracking()
+    public void ToggleExtendedTracking(bool enable)
     {
-        Toggle extTrackingToggle = FindUISelectableWithText<Toggle>("Extended");
-        if (extTrackingToggle && mTrackableSettings)
-            mTrackableSettings.SwitchExtendedTracking(extTrackingToggle.isOn);
-        
-        CloseMenu();
+        if (m_TrackableSettings)
+            m_TrackableSettings.ToggleDeviceTracking(enable);
     }
 
     public void ActivateDataset(string datasetName)
     {
-        if (mTrackableSettings)
-            mTrackableSettings.ActivateDataSet(datasetName);
-
-        CloseMenu();
+        if (m_TrackableSettings)
+            m_TrackableSettings.ActivateDataSet(datasetName);
     }
 
     public void UpdateUI()
     {
-        Toggle extTrackingToggle = FindUISelectableWithText<Toggle>("Extended");
-        if (extTrackingToggle && mTrackableSettings) 
-            extTrackingToggle.isOn = mTrackableSettings.IsExtendedTrackingEnabled();
+        if (m_DeviceTrackerToggle && m_TrackableSettings)
+            m_DeviceTrackerToggle.isOn = m_TrackableSettings.IsDeviceTrackingEnabled();
 
-        Toggle flashToggle = FindUISelectableWithText<Toggle>("Flash");
-        if (flashToggle && mCamSettings)
-            flashToggle.isOn = mCamSettings.IsFlashTorchEnabled();
+        if (m_FlashToggle && m_CameraSettings)
+            m_FlashToggle.isOn = m_CameraSettings.IsFlashTorchEnabled();
 
-        Toggle autofocusToggle = FindUISelectableWithText<Toggle>("Autofocus");
-        if (autofocusToggle && mCamSettings) 
-            autofocusToggle.isOn = mCamSettings.IsAutofocusEnabled();
-
-        Toggle frontCamToggle = FindUISelectableWithText<Toggle>("Front");
-        if (frontCamToggle && mCamSettings)
-            frontCamToggle.isOn = mCamSettings.IsFrontCameraActive();
-
-        Toggle rearCamToggle = FindUISelectableWithText<Toggle>("Rear");
-        if (rearCamToggle && mCamSettings)
-            rearCamToggle.isOn = !mCamSettings.IsFrontCameraActive();
-        
-        Toggle stonesAndChipsToggle = FindUISelectableWithText<Toggle>("Stones");
-        if (stonesAndChipsToggle && mTrackableSettings)
-            stonesAndChipsToggle.isOn = mTrackableSettings.GetActiveDatasetName().Contains("Stones");
-
-        Toggle tarmacToggle = FindUISelectableWithText<Toggle>("Tarmac");
-        if (tarmacToggle && mTrackableSettings)
-            tarmacToggle.isOn = mTrackableSettings.GetActiveDatasetName().Contains("Tarmac");
+        if (m_AutofocusToggle && m_CameraSettings)
+            m_AutofocusToggle.isOn = m_CameraSettings.IsAutofocusEnabled();
     }
 
-    public void CloseMenu()
+    public void ResetDeviceTracker()
     {
-        if (mMenuAnim)
-            mMenuAnim.Hide();
+        var objTracker = TrackerManager.Instance.GetTracker<ObjectTracker>();
+
+        if (objTracker != null && objTracker.IsActive)
+        {
+            objTracker.Stop();
+            
+            foreach (DataSet dataset in objTracker.GetDataSets())
+            {
+                objTracker.DeactivateDataSet(dataset);
+                objTracker.ActivateDataSet(dataset);
+            }
+
+            objTracker.Start();
+        }
+
+        var deviceTracker = TrackerManager.Instance.GetTracker<PositionalDeviceTracker>();
+
+        if (deviceTracker != null && deviceTracker.Reset())
+        {
+            Debug.Log("Successfully reset device tracker");
+        }
+        else
+        {
+            Debug.LogError("Failed to reset device tracker");
+        }
     }
+
+
+    public void ShowOptionsMenu(bool show)
+    {
+        if (m_OptionsConfig && m_OptionsConfig.AnyOptionsEnabled())
+        {
+            if (show)
+            {
+                UpdateUI();
+                m_OptionsMenuCanvas.gameObject.SetActive(true);
+                m_OptionsMenuCanvas.enabled = true;
+                IsDisplayed = true;
+            }
+            else
+            {
+                m_OptionsMenuCanvas.gameObject.SetActive(false);
+                m_OptionsMenuCanvas.enabled = false;
+                IsDisplayed = false;
+            }
+        }
+    }
+
     #endregion //PUBLIC_METHODS
 
 
     #region PROTECTED_METHODS
     protected T FindUISelectableWithText<T>(string text) where T : UnityEngine.UI.Selectable
     {
-        T[] uiElements = GetComponentsInChildren<T>();
+        T[] uiElements = GetComponentsInChildren<T>(true);
         foreach (var uielem in uiElements)
         {
             string childText = uielem.GetComponentInChildren<Text>().text;
@@ -139,4 +151,23 @@ public class MenuOptions : MonoBehaviour
         return null;
     }
     #endregion //PROTECTED_METHODS
+
+    #region PRIVATE_METHODS
+    private void OnPaused(bool paused)
+    {
+        if (paused)
+        {
+            // Handle any tasks when app is paused here:
+        }
+        else
+        {
+            // Handle any tasks when app is resume here:
+
+            // The flash torch is switched off by the OS automatically when app is paused.
+            // On resume, update torch UI toggle to match torch status.
+            UpdateUI();
+        }
+    }
+    #endregion //PRIVATE_METHODS
+
 }

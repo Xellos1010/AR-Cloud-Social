@@ -1,9 +1,9 @@
 ﻿/*===============================================================================
-Copyright (c) 2015 PTC Inc. All Rights Reserved.
- 
+Copyright (c) 2015-2018 PTC Inc. All Rights Reserved.
+
 Copyright (c) 2015 Qualcomm Connected Experiences, Inc. All Rights Reserved.
- 
-Vuforia is a trademark of PTC Inc., registered in the United States and other 
+
+Vuforia is a trademark of PTC Inc., registered in the United States and other
 countries.
 ===============================================================================*/
 using UnityEngine;
@@ -16,14 +16,13 @@ public class CameraSettings : MonoBehaviour
     private bool mVuforiaStarted = false;
     private bool mAutofocusEnabled = true;
     private bool mFlashTorchEnabled = false;
-    private CameraDevice.CameraDirection mActiveDirection = CameraDevice.CameraDirection.CAMERA_DEFAULT;
     #endregion //PRIVATE_MEMBERS
 
 
     #region MONOBEHAVIOUR_METHODS
-    void Start () 
+    void Start()
     {
-        VuforiaAbstractBehaviour vuforia = FindObjectOfType<VuforiaAbstractBehaviour>();
+        var vuforia = VuforiaARController.Instance;
         vuforia.RegisterVuforiaStartedCallback(OnVuforiaStarted);
         vuforia.RegisterOnPauseCallback(OnPaused);
     }
@@ -89,20 +88,40 @@ public class CameraSettings : MonoBehaviour
         StartCoroutine(RestoreOriginalFocusMode());
     }
 
-    public void SelectCamera(CameraDevice.CameraDirection camDir)
+    public bool RestartCamera()
     {
-        if (RestartCamera (camDir)) 
+        ObjectTracker objectTracker = TrackerManager.Instance.GetTracker<ObjectTracker>();
+
+        if (objectTracker != null)
         {
-            mActiveDirection = camDir;
-
-            // Upon camera restart, flash is turned off
-            mFlashTorchEnabled = false;
+            objectTracker.Stop();
         }
-    }
 
-    public bool IsFrontCameraActive()
-    {
-        return (mActiveDirection == CameraDevice.CameraDirection.CAMERA_FRONT);
+        // Camera must be deinitialized before attempting to deinitialize trackers
+        CameraDevice.Instance.Stop();
+        CameraDevice.Instance.Deinit();
+
+        if (!CameraDevice.Instance.Init())
+        {
+            Debug.Log("Failed to initialize the camera.");
+            return false;
+        }
+        if (!CameraDevice.Instance.Start())
+        {
+            Debug.Log("Failed to start the camera.");
+            return false;
+        }
+
+        if (objectTracker != null)
+        {
+            if (!objectTracker.Start())
+            {
+                Debug.Log("Failed to restart the Object Tracker.");
+                return false;
+            }
+        }
+
+        return true;
     }
     #endregion // PUBLIC_METHODS
 
@@ -125,8 +144,10 @@ public class CameraSettings : MonoBehaviour
                 CameraDevice.Instance.SetFocusMode(CameraDevice.FocusMode.FOCUS_MODE_CONTINUOUSAUTO);
             else
                 CameraDevice.Instance.SetFocusMode(CameraDevice.FocusMode.FOCUS_MODE_NORMAL);
-
-            // Set the torch flag to false on resume (cause the flash torch is switched off by the OS automatically)
+        }
+        else
+        {
+            // Set the torch flag to false on pause (because the flash torch is switched off by the OS automatically)
             mFlashTorchEnabled = false;
         }
     }
@@ -143,36 +164,5 @@ public class CameraSettings : MonoBehaviour
             CameraDevice.Instance.SetFocusMode(CameraDevice.FocusMode.FOCUS_MODE_NORMAL);
     }
 
-    private bool RestartCamera(CameraDevice.CameraDirection direction)
-    {
-        ObjectTracker tracker = TrackerManager.Instance.GetTracker<ObjectTracker>();
-        if (tracker != null)
-            tracker.Stop();
-
-        CameraDevice.Instance.Stop();
-        CameraDevice.Instance.Deinit();
-
-        if (!CameraDevice.Instance.Init(direction))
-        {
-            Debug.Log("Failed to init camera for direction: " + direction.ToString());
-            return false;
-        }
-        if (!CameraDevice.Instance.Start())
-        {
-            Debug.Log("Failed to start camera for direction: " + direction.ToString());
-            return false;
-        }
-
-        if (tracker != null)
-        {
-            if (!tracker.Start())
-            {
-                Debug.Log("Failed to restart the Tracker.");
-                return false;
-            }
-        }
-            
-        return true;
-    }
     #endregion // PRIVATE_METHODS
 }

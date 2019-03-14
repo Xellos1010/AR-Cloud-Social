@@ -1,5 +1,5 @@
 /*===============================================================================
-Copyright (c) 2015-2016 PTC Inc. All Rights Reserved.
+Copyright (c) 2015-2017 PTC Inc. All Rights Reserved.
  
 Copyright (c) 2015 Qualcomm Connected Experiences, Inc. All Rights Reserved.
  
@@ -14,12 +14,7 @@ public class AboutScreen : MonoBehaviour
     #region PUBLIC_METHODS
     public void OnStartAR()
     {
-        Debug.Log("Starttt");
-#if (UNITY_5_2 || UNITY_5_1 || UNITY_5_0)
-        Application.LoadLevel("Vuforia-2-Loading");
-#else // UNITY_5_3 or above
-        UnityEngine.SceneManagement.SceneManager.LoadScene("Vuforia-2-Loading");
-#endif
+        UnityEngine.SceneManagement.SceneManager.LoadScene("2-Loading");
     }
     #endregion // PUBLIC_METHODS
 

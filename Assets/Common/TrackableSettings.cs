@@ -1,124 +1,133 @@
 ﻿/*===============================================================================
-Copyright (c) 2015-2016 PTC Inc. All Rights Reserved.
- 
+Copyright (c) 2015-2018 PTC Inc. All Rights Reserved.
+
 Copyright (c) 2015 Qualcomm Connected Experiences, Inc. All Rights Reserved.
- 
-Vuforia is a trademark of PTC Inc., registered in the United States and other 
+
+Vuforia is a trademark of PTC Inc., registered in the United States and other
 countries.
 ===============================================================================*/
 using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Vuforia;
 
 public class TrackableSettings : MonoBehaviour
 {
-    #region PROTECTED_MEMBERS
-    protected bool mExtTrackingEnabled = false;
-    #endregion //PROTECTED_MEMBERS
+    #region PUBLIC_MEMBERS
+    
+    [HideInInspector]
+    public bool m_DeviceTrackerEnabled = false;
 
+    [HideInInspector]
+    public FusionProviderType m_FusionProviderType = FusionProviderType.OPTIMIZE_MODEL_TARGETS_AND_SMART_TERRAIN;
+    
+    #endregion //PUBLIC_MEMBERS
 
-    #region PUBLIC_METHODS
-    public bool IsExtendedTrackingEnabled()
+    #region PRIVATE_MEMBERS
+    PositionalDeviceTracker m_PositionalDeviceTracker;
+    #endregion // PRIVATE_MEMBERS
+
+    
+    #region UNITY_MONOBEHAVIOUR_METHODS
+    
+    private void Awake()
     {
-        return mExtTrackingEnabled;
+        VuforiaARController.Instance.RegisterBeforeVuforiaTrackersInitializedCallback(OnBeforeVuforiaTrackerInitialized);
+        VuforiaARController.Instance.RegisterVuforiaInitializedCallback(OnVuforiaInitialized);
     }
 
-    /// <summary>
-    /// Enabled/disabled Extended Tracking mode.
-    /// </summary>
-    /// <param name="ON"></param>
-    public virtual void SwitchExtendedTracking(bool extTrackingEnabled)
+    private void Start()
     {
-        StateManager stateManager = TrackerManager.Instance.GetStateManager();
+        VuforiaARController.Instance.RegisterVuforiaStartedCallback(OnVuforiaStarted);
+    }
 
-        // We iterate over all TrackableBehaviours to start or stop extended tracking for the targets they represent.
-        bool success = true;
-        foreach (var tb in stateManager.GetTrackableBehaviours())
+    private void OnDestroy()
+    {
+        VuforiaARController.Instance.UnregisterBeforeVuforiaTrackersInitializedCallback(OnBeforeVuforiaTrackerInitialized);
+        VuforiaARController.Instance.UnregisterVuforiaStartedCallback(OnVuforiaStarted);
+        VuforiaARController.Instance.UnregisterVuforiaInitializedCallback(OnVuforiaInitialized);
+    }
+    
+    #endregion // UNITY_MONOBEHAVIOUR_METHODS
+
+    
+    #region PRIVATE_METHODS
+
+    private void OnBeforeVuforiaTrackerInitialized()
+    {
+        // set the selected fusion provider mask in the DeviceTrackerARController before it's being used.
+        Debug.LogWarning("DeviceTrackerARController.Instance.FusionProvider = " + m_FusionProviderType);
+        DeviceTrackerARController.Instance.FusionProvider = m_FusionProviderType;
+    }
+
+    private void OnVuforiaInitialized()
+    {
+
+        m_PositionalDeviceTracker = TrackerManager.Instance.GetTracker<PositionalDeviceTracker>();
+
+        // if we don't have yet a positional device tracker, initialize one
+        if (m_PositionalDeviceTracker == null)
         {
-            if (tb is ImageTargetBehaviour)
+            m_PositionalDeviceTracker = TrackerManager.Instance.InitTracker<PositionalDeviceTracker>();
+
+            if (m_PositionalDeviceTracker != null)
             {
-                ImageTargetBehaviour itb = tb as ImageTargetBehaviour;
-				if (extTrackingEnabled)
+                Debug.Log("Successfully initialized the positional device tracker");
+            }
+            else
+            {
+                Debug.LogError("Failed to initialize the positional device tracker");
+            }        
+        }
+    }
+
+    private void OnVuforiaStarted()
+    {
+        ToggleDeviceTracking(m_DeviceTrackerEnabled);
+    }
+    
+    #endregion // PRIVATE_METHODS
+
+    
+    #region PUBLIC_METHODS
+    
+    public bool IsDeviceTrackingEnabled()
+    {
+        return m_DeviceTrackerEnabled;
+    }
+
+    public virtual void ToggleDeviceTracking(bool enableDeviceTracking)
+    {
+        if (m_PositionalDeviceTracker != null)
+        {
+            if (enableDeviceTracking)
+            {
+                // if the positional device tracker is not yet started, start it
+                if (!m_PositionalDeviceTracker.IsActive)
                 {
-                    if (!itb.ImageTarget.StartExtendedTracking())
+                    if (m_PositionalDeviceTracker.Start())
                     {
-                        success = false;
-                        Debug.LogError("Failed to start Extended Tracking on Target " + itb.TrackableName);
+                        Debug.Log("Successfully started device tracker");
                     }
-                }
-                else
-                {
-                    itb.ImageTarget.StopExtendedTracking();
+                    else
+                    {
+                        Debug.LogError("Failed to start device tracker");
+                    }
                 }
             }
-            else if (tb is MultiTargetBehaviour)
+            else if (m_PositionalDeviceTracker.IsActive)
             {
-                MultiTargetBehaviour mtb = tb as MultiTargetBehaviour;
-				if (extTrackingEnabled)
-                {
-                    if (!mtb.MultiTarget.StartExtendedTracking())
-                    {
-                        success = false;
-                        Debug.LogError("Failed to start Extended Tracking on Target " + mtb.TrackableName);
-                    }
-                }
-                else
-                {
-                    mtb.MultiTarget.StopExtendedTracking();
-                }
-            }
-            else if (tb is CylinderTargetBehaviour)
-            {
-                CylinderTargetBehaviour ctb = tb as CylinderTargetBehaviour;
-				if (extTrackingEnabled)
-                {
-                    if (!ctb.CylinderTarget.StartExtendedTracking())
-                    {
-                        success = false;
-                        Debug.LogError("Failed to start Extended Tracking on Target " + ctb.TrackableName);
-                    }
-                }
-                else
-                {
-                    ctb.CylinderTarget.StopExtendedTracking();
-                }
-            }
-            else if (tb is ObjectTargetBehaviour)
-            {
-				ObjectTargetBehaviour otb = tb as ObjectTargetBehaviour;
-                if (extTrackingEnabled)
-                {
-                    if (!otb.ObjectTarget.StartExtendedTracking())
-                    {
-                        success = false;
-                        Debug.LogError("Failed to start Extended Tracking on Target " + otb.TrackableName);
-                    }
-                }
-                else
-                {
-					otb.ObjectTarget.StopExtendedTracking();
-                }
-            }
-            else if (tb is VuMarkBehaviour)
-            {
-                VuMarkBehaviour vmb = tb as VuMarkBehaviour;
-                if (extTrackingEnabled)
-                {
-                    if (!vmb.VuMarkTemplate.StartExtendedTracking())
-                    {
-                        success = false;
-                        Debug.LogError("Failed to start Extended Tracking on Target " + vmb.TrackableName);
-                    }
-                }
-                else
-                {
-                    vmb.VuMarkTemplate.StopExtendedTracking();
-                }
+                m_PositionalDeviceTracker.Stop();
+
+                Debug.Log("Successfully stopped device tracker");
             }
         }
-        mExtTrackingEnabled = success && extTrackingEnabled;
+        else
+        {
+            Debug.LogError("Failed to toggle device tracker state, make sure device tracker is initialized");
+        }
+
+        m_DeviceTrackerEnabled = m_PositionalDeviceTracker.IsActive;
     }
 
     public string GetActiveDatasetName()
@@ -165,8 +174,17 @@ public class TrackableSettings : MonoBehaviour
             }
         }
 
-        // 4. Finally, restart the object tracker.
+        // 4. Finally, restart the object tracker and reset the device tracker.
         objectTracker.Start();
+
+        if (m_PositionalDeviceTracker != null)
+        {
+            m_PositionalDeviceTracker.Reset();
+        }
+        else
+        {
+            Debug.LogError("Failed to reset device tracker");
+        }
     }
     #endregion //PUBLIC_METHODS
 }

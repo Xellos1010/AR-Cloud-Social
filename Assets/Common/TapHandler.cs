@@ -1,5 +1,5 @@
 /*===============================================================================
-Copyright (c) 2015-2016 PTC Inc. All Rights Reserved.
+Copyright (c) 2015-2018 PTC Inc. All Rights Reserved.
  
 Copyright (c) 2015 Qualcomm Connected Experiences, Inc. All Rights Reserved.
  
@@ -7,34 +7,34 @@ Vuforia is a trademark of PTC Inc., registered in the United States and other
 countries.
 ===============================================================================*/
 using UnityEngine;
-using System.Collections;
 
 public class TapHandler : MonoBehaviour
 {
     #region PRIVATE_MEMBERS
-    private const float DOUBLE_TAP_MAX_DELAY = 0.5f;//seconds
-    private float mTimeSinceLastTap = 0;
-    private MenuAnimator mMenuAnim = null;
-    public ObjectManager objectManager;
+    const float DOUBLE_TAP_MAX_DELAY = 0.5f; //seconds
+    float mTimeSinceLastTap;
+    MenuOptions m_MenuOptions;
+    CameraSettings m_CameraSettings;
     #endregion //PRIVATE_MEMBERS
 
 
     #region PROTECTED_MEMBERS
-    protected int mTapCount = 0;
+    protected int mTapCount;
     #endregion //PROTECTED_MEMBERS
 
 
     #region MONOBEHAVIOUR_METHODS
-    void Start() 
+    void Start()
     {
         mTapCount = 0;
         mTimeSinceLastTap = 0;
-        mMenuAnim = FindObjectOfType<MenuAnimator>();
+        m_MenuOptions = FindObjectOfType<MenuOptions>();
+        m_CameraSettings = FindObjectOfType<CameraSettings>();
     }
 
-    void Update() 
+    void Update()
     {
-        if (mMenuAnim && mMenuAnim.IsVisible())
+        if (m_MenuOptions && m_MenuOptions.IsDisplayed)
         {
             mTapCount = 0;
             mTimeSinceLastTap = 0;
@@ -43,18 +43,6 @@ public class TapHandler : MonoBehaviour
         {
             HandleTap();
         }
-
-#if UNITY_ANDROID
-        // On Android, the Back button is mapped to the Esc key
-        if (Input.GetKeyUp(KeyCode.Escape))
-        {
-#if (UNITY_5_2 || UNITY_5_1 || UNITY_5_0)
-            Application.LoadLevel("Vuforia-1-About");   
-#else // UNITY_5_3 or above
-            UnityEngine.SceneManagement.SceneManager.LoadScene("Vuforia-1-About");
-#endif
-        }
-#endif
     }
     #endregion //MONOBEHAVIOUR_METHODS
 
@@ -107,21 +95,18 @@ public class TapHandler : MonoBehaviour
 
     protected virtual void OnSingleTapConfirmed()
     {
-        CameraSettings camSettings = GetComponentInChildren<CameraSettings>();
-        if (camSettings)
+        if (m_CameraSettings)
         {
-            camSettings.TriggerAutofocusEvent();
+            m_CameraSettings.TriggerAutofocusEvent();
         }
     }
 
     protected virtual void OnDoubleTap()
     {
-        //objectManager.ToggleNextObjectWithWait();
-        /*if (mMenuAnim && !mMenuAnim.IsVisible())
+        if (m_MenuOptions && !m_MenuOptions.IsDisplayed)
         {
-            mMenuAnim.Show();
-        }*/
-
+            m_MenuOptions.ShowOptionsMenu(true);
+        }
     }
     #endregion // PROTECTED_METHODS
 }

@@ -1,12 +1,11 @@
 /*===============================================================================
-Copyright (c) 2015-2016 PTC Inc. All Rights Reserved.
- 
+Copyright (c) 2015-2018 PTC Inc. All Rights Reserved.
+
 Copyright (c) 2012-2015 Qualcomm Connected Experiences, Inc. All Rights Reserved.
- 
-Vuforia is a trademark of PTC Inc., registered in the United States and other 
+
+Vuforia is a trademark of PTC Inc., registered in the United States and other
 countries.
 ===============================================================================*/
-using System;
 using UnityEngine;
 using Vuforia;
 
@@ -18,32 +17,29 @@ using Vuforia;
 public class CloudRecoEventHandler : MonoBehaviour, ICloudRecoEventHandler
 {
     #region PRIVATE_MEMBERS
-    // ObjectTracker reference to avoid lookups
-    private ObjectTracker mObjectTracker;
-    private ContentManager mContentManager;
-    private TrackableSettings mTrackableSettings;
-    private bool mMustRestartApp = false;
-
-    // the parent gameobject of the referenced ImageTargetTemplate - reused for all target search results
-    private GameObject mParentOfImageTargetTemplate;
+    CloudRecoBehaviour m_CloudRecoBehaviour;
+    ObjectTracker m_ObjectTracker;
+    TargetFinder m_TargetFinder;
+    CloudRecoContentManager m_CloudRecoContentManager;
+    TrackableSettings m_TrackableSettings;
+    bool isTargetFinderScanning;
     #endregion // PRIVATE_MEMBERS
 
 
     #region PUBLIC_MEMBERS
     /// <summary>
-    /// Can be set in the Unity inspector to reference a ImageTargetBehaviour that is used for augmentations of new cloud reco results.
+    /// Can be set in the Unity inspector to reference a ImageTargetBehaviour that is used for
+    /// augmentations of new cloud reco results.
     /// </summary>
-    public ImageTargetBehaviour ImageTargetTemplate;
+    [Tooltip("Here you can set the ImageTargetBehaviour from the scene that will be used to " +
+             "augment new cloud reco search results.")]
+    public ImageTargetBehaviour m_ImageTargetBehaviour;
     /// <summary>
     /// The scan-line rendered in overlay when Cloud Reco is in scanning mode.
     /// </summary>
-    public ScanLine scanLine;
-    /// <summary>
-    /// Cloud Reco error UI elements.
-    /// </summary>
-    public Canvas cloudErrorCanvas;
-    public UnityEngine.UI.Text cloudErrorTitle;
-    public UnityEngine.UI.Text cloudErrorText;
+    public ScanLine m_ScanLine;
+    public UnityEngine.UI.Image m_CloudActivityIcon;
+    public UnityEngine.UI.Button m_ResetCloudTrackables;
     #endregion //PUBLIC_MEMBERS
 
 
@@ -53,22 +49,34 @@ public class CloudRecoEventHandler : MonoBehaviour, ICloudRecoEventHandler
     /// </summary>
     void Start()
     {
-        mTrackableSettings = FindObjectOfType<TrackableSettings>();
-
-        // look up the gameobject containing the ImageTargetTemplate:
-        mParentOfImageTargetTemplate = ImageTargetTemplate.gameObject;
+        m_ScanLine = FindObjectOfType<ScanLine>();
+        m_CloudRecoContentManager = FindObjectOfType<CloudRecoContentManager>();
+        m_TrackableSettings = FindObjectOfType<TrackableSettings>();
 
         // register this event handler at the cloud reco behaviour
-        CloudRecoBehaviour cloudRecoBehaviour = GetComponent<CloudRecoBehaviour>();
-        if (cloudRecoBehaviour)
+        m_CloudRecoBehaviour = GetComponent<CloudRecoBehaviour>();
+        if (m_CloudRecoBehaviour)
         {
-            cloudRecoBehaviour.RegisterEventHandler(this);
+            m_CloudRecoBehaviour.RegisterEventHandler(this);
+        }
+    }
+
+    void Update()
+    {
+        if (m_CloudRecoBehaviour.CloudRecoInitialized)
+        {
+            SetCloudActivityIconVisible(m_ObjectTracker.TargetFinder.IsRequesting());
+        }
+
+        if (m_TrackableSettings != null)
+        {
+            EnableResetTrackablesButton(m_TrackableSettings.m_DeviceTrackerEnabled);
         }
     }
     #endregion //MONOBEHAVIOUR_METHODS
+    
 
-
-    #region ICloudRecoEventHandler_implementation
+    #region INTERFACE_IMPLEMENTATION_ICloudRecoEventHandler
     /// <summary>
     /// Called when TargetFinder has been initialized successfully
     /// </summary>
@@ -77,79 +85,34 @@ public class CloudRecoEventHandler : MonoBehaviour, ICloudRecoEventHandler
         Debug.Log("Cloud Reco initialized successfully.");
 
         // get a reference to the Object Tracker, remember it
-        mObjectTracker = TrackerManager.Instance.GetTracker<ObjectTracker>();
-        mContentManager = GameObject.FindGameObjectWithTag("ContentManager").GetComponent<ContentManager>();
+        m_ObjectTracker = TrackerManager.Instance.GetTracker<ObjectTracker>();
+        m_TargetFinder = m_ObjectTracker.TargetFinder;
     }
 
-    /// <summary>
-    /// Called if Cloud Reco initialization fails
-    /// </summary>
-    public void OnInitError(TargetFinder.InitState initError)
-    {
-        Debug.Log("Cloud Reco initialization error: " + initError.ToString());
-        switch (initError)
-        {
-            case TargetFinder.InitState.INIT_ERROR_NO_NETWORK_CONNECTION:
-                {
-                    mMustRestartApp = true;
-                    ShowError("Network Unavailable", "Please check your internet connection and try again.");
-                    break;
-                }
-            case TargetFinder.InitState.INIT_ERROR_SERVICE_NOT_AVAILABLE:
-                ShowError("Service Unavailable", "Failed to initialize app because the service is not available.");
-                break;
-        }
-    }
     
-    /// <summary>
-    /// Called if a Cloud Reco update error occurs
-    /// </summary>
-    public void OnUpdateError(TargetFinder.UpdateState updateError)
-    {
-        Debug.Log("Cloud Reco update error: " + updateError.ToString());
-        switch (updateError)
-        {
-            case TargetFinder.UpdateState.UPDATE_ERROR_AUTHORIZATION_FAILED:
-                ShowError("Authorization Error", "The cloud recognition service access keys are incorrect or have expired.");
-                break;
-            case TargetFinder.UpdateState.UPDATE_ERROR_NO_NETWORK_CONNECTION:
-                ShowError("Network Unavailable", "Please check your internet connection and try again.");
-                break;
-            case TargetFinder.UpdateState.UPDATE_ERROR_PROJECT_SUSPENDED:
-                ShowError("Authorization Error", "The cloud recognition service has been suspended.");
-                break;
-            case TargetFinder.UpdateState.UPDATE_ERROR_REQUEST_TIMEOUT:
-                ShowError("Request Timeout", "The network request has timed out, please check your internet connection and try again.");
-                break;
-            case TargetFinder.UpdateState.UPDATE_ERROR_SERVICE_NOT_AVAILABLE:
-                ShowError("Service Unavailable", "The service is unavailable, please try again later.");
-                break;
-            case TargetFinder.UpdateState.UPDATE_ERROR_TIMESTAMP_OUT_OF_RANGE:
-                ShowError("Clock Sync Error", "Please update the date and time and try again.");
-                break;
-            case TargetFinder.UpdateState.UPDATE_ERROR_UPDATE_SDK:
-                ShowError("Unsupported Version", "The application is using an unsupported version of Vuforia.");
-                break;
-        }
-    }
+    // Error callback methods implemented in CloudErrorHandler
+    public void OnInitError(TargetFinder.InitState initError) {}
+    public void OnUpdateError(TargetFinder.UpdateState updateError) {}
+
 
     /// <summary>
     /// when we start scanning, unregister Trackable from the ImageTargetTemplate, then delete all trackables
     /// </summary>
     public void OnStateChanged(bool scanning)
     {
+
+        Debug.Log("<color=blue>OnStateChanged(): </color>" + scanning);
+
+        isTargetFinderScanning = scanning;
+        
         if (scanning)
         {
             // clear all known trackables
-            mObjectTracker.TargetFinder.ClearTrackables(false);
+            m_TargetFinder.ClearTrackables(false);
 
-            // hide the ImageTargetTemplate
-            mContentManager.ToggleObjects(false);
-                       
         }
-        //Show the Scan Line
-        ShowScanLine(scanning);
 
+        m_ScanLine.ShowScanLine(scanning);
     }
 
     /// <summary>
@@ -158,109 +121,119 @@ public class CloudRecoEventHandler : MonoBehaviour, ICloudRecoEventHandler
     /// <param name="targetSearchResult"></param>
     public void OnNewSearchResult(TargetFinder.TargetSearchResult targetSearchResult)
     {
-        // This code demonstrates how to reuse an ImageTargetBehaviour for new search results and modifying it according to the metadata
-        // Depending on your application, it can make more sense to duplicate the ImageTargetBehaviour using Instantiate(), 
-        // or to create a new ImageTargetBehaviour for each new result
+        Debug.Log("<color=blue>OnNewSearchResult(): </color>" + targetSearchResult.TargetName);
 
-        // Vuforia will return a new object with the right script automatically if you use
+        // This code demonstrates how to reuse an ImageTargetBehaviour for new search results
+        // and modifying it according to the metadata. Depending on your application, it can
+        // make more sense to duplicate the ImageTargetBehaviour using Instantiate() or to
+        // create a new ImageTargetBehaviour for each new result. Vuforia will return a new
+        // object with the right script automatically if you use:
         // TargetFinder.EnableTracking(TargetSearchResult result, string gameObjectName)
-        
+
+        m_CloudRecoContentManager.HandleTargetFinderResult(targetSearchResult);
+
+
         //Check if the metadata isn't null
         if (targetSearchResult.MetaData == null)
         {
             Debug.Log("Target metadata not available.");
-            return;
         }
         else
         {
-            mContentManager.PassMetaData(targetSearchResult.MetaData);
+            Debug.Log("MetaData: " + targetSearchResult.MetaData);
+            Debug.Log("TargetName: " + targetSearchResult.TargetName);
+            Debug.Log("Pointer: " + targetSearchResult.TargetSearchResultPtr);
+            Debug.Log("TargetSize: " + targetSearchResult.TargetSize);
+            Debug.Log("TrackingRating: " + targetSearchResult.TrackingRating);
+            Debug.Log("UniqueTargetId: " + targetSearchResult.UniqueTargetId);
         }
 
         // First clear all trackables
-        mObjectTracker.TargetFinder.ClearTrackables(false);
+        m_TargetFinder.ClearTrackables(false);
 
         // enable the new result with the same ImageTargetBehaviour:
-        ImageTargetBehaviour imageTargetBehaviour = mObjectTracker.TargetFinder.EnableTracking(targetSearchResult, mParentOfImageTargetTemplate) as ImageTargetBehaviour;
-        
-        //if extended tracking was enabled from the menu, we need to start the extendedtracking on the newly found trackble.
-        if (mTrackableSettings && mTrackableSettings.IsExtendedTrackingEnabled())
-        {
-            imageTargetBehaviour.ImageTarget.StartExtendedTracking();
-        }
+        m_TargetFinder.EnableTracking(targetSearchResult, m_ImageTargetBehaviour.gameObject);
     }
-    #endregion //ICloudRecoEventHandler_implementation
+    #endregion // INTERFACE_IMPLEMENTATION_ICloudRecoEventHandler
 
 
     #region PUBLIC_METHODS
-    public void CloseErrorDialog()
-    {
-        if (cloudErrorCanvas)
-        {
-            cloudErrorCanvas.transform.parent.position = Vector3.right * 2 * Screen.width;
-            cloudErrorCanvas.gameObject.SetActive(false);
-            cloudErrorCanvas.enabled = false;
+    
 
-            if (mMustRestartApp)
-            {
-				mMustRestartApp = false;
-                RestartApplication();
-            }
-        }
+    public void TrackingLost()
+    {
+        TrackableWasFound(false);
     }
-    #endregion //PUBLIC_METHODS
 
-    #region PRIVATE_METHODS
-    private void ShowScanLine(bool show)
+    public void TrackingFound()
     {
-        // Toggle scanline rendering
-        if (scanLine != null)
-        {
-            Renderer scanLineRenderer = scanLine.GetComponent<Renderer>();
-            if (show)
-            {
-                // Enable scan line rendering
-                if (!scanLineRenderer.enabled)
-                    scanLineRenderer.enabled = true;
+        TrackableWasFound(true);
+    }
+    
+    #endregion // PUBLIC_METHODS
 
-                scanLine.ResetAnimation();
+        
+    #region PRIVATE_METHODS
+    void SetCloudActivityIconVisible(bool visible)
+    {
+        if (!m_CloudActivityIcon) return;
+
+        m_CloudActivityIcon.enabled = visible;
+    }
+
+    void EnableResetTrackablesButton(bool enable)
+    {
+        m_ResetCloudTrackables.image.enabled = enable;
+        m_ResetCloudTrackables.interactable = enable && !isTargetFinderScanning;
+        m_ResetCloudTrackables.enabled = enable;
+    }
+    
+    void TrackableWasFound(bool isTrackingFound)
+    {
+        if (m_CloudRecoContentManager)
+        {
+            m_CloudRecoContentManager.ShowTargetInfo(isTrackingFound);
+        }
+
+        if (m_TargetFinder != null)
+        {
+            if (isTrackingFound)
+            {
+                // Start Target Finder again if we lost the current trackable
+                isTargetFinderScanning = !m_TargetFinder.Stop();   
             }
             else
             {
-                // Disable scanline rendering
-                if (scanLineRenderer.enabled)
-                    scanLineRenderer.enabled = false;
+                // Stop Target Finder since we have now a result
+                // Target Finder will be restarted again when we lose track of the result
+                m_TargetFinder.ClearTrackables(false);
+                isTargetFinderScanning = m_TargetFinder.StartRecognition();
+            }
+            
+            if (m_ScanLine)
+            {
+                // Start or Stop showing the scan-line
+                m_ScanLine.ShowScanLine(isTargetFinderScanning);
             }
         }
     }
 
-    private void ShowError(string title, string msg)
+    #endregion // PRIVATE_METHODS
+    
+    
+    #region BUTTON_METHODS
+    public void ResetTrackables()
     {
-        if (!cloudErrorCanvas) return;
-
-        if (cloudErrorTitle)
-            cloudErrorTitle.text = title;
-
-        if (cloudErrorText)
-            cloudErrorText.text = msg;
-
-        // Show the error canvas
-        cloudErrorCanvas.transform.parent.position = Vector3.zero;
-        cloudErrorCanvas.gameObject.SetActive(true);
-        cloudErrorCanvas.enabled = true;
+        if (m_TrackableSettings.m_DeviceTrackerEnabled)
+        {
+            // When the Reset button is clicked during Extended Tracking, manually
+            // trigger a lost event to hide the augmentations since the
+            // TrackableEventHandler will not have received a normal automatic trackable event.
+            FindObjectOfType<CloudRecoTrackableEventHandler>().OnTrackableStateChanged(
+                TrackableBehaviour.Status.EXTENDED_TRACKED, TrackableBehaviour.Status.NO_POSE);
+        }
+        
+        TrackingLost();
     }
-
-    // Callback for network-not-available error message
-    private void RestartApplication()
-    {
-#if (UNITY_5_2 || UNITY_5_1 || UNITY_5_0)
-        int startLevel = Application.loadedLevel - 2;
-        if (startLevel < 0) startLevel = 0;
-        Application.LoadLevel(startLevel);
-#else // UNITY_5_3 or above
-        int startLevel = UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex - 2;
-        if (startLevel < 0) startLevel = 0;
-        UnityEngine.SceneManagement.SceneManager.LoadScene(startLevel);
-#endif
-    }
-    #endregion //PRIVATE_METHODS
+    #endregion // BUTTON_METHODS
 }

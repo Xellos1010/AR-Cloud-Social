@@ -3,6 +3,7 @@ using Vuforia;
 using System.Collections;
 using System.IO;
 
+
 public class TakePhotoVuforiaCamera : MonoBehaviour, ITrackerEventHandler
 {
     private Image.PIXEL_FORMAT m_PixelFormat = Image.PIXEL_FORMAT.RGBA8888;//Image.PIXEL_FORMAT.RGB888;
@@ -87,12 +88,5 @@ public class TakePhotoVuforiaCamera : MonoBehaviour, ITrackerEventHandler
             //Application.CaptureScreenshot("UnityScreenshot.png");
         }
     }
-
-    /*IEnumerator RotateandSetTexture(Texture TextureToFlip)
-    {
-        Texture2D tex = new Texture2D(TextureToFlip.width, TextureToFlip.height);
-        yield return UtilityFunctions.SaveAsFlippedTexture2D(TextureToFlip, false, true);
-
-    }*/
     
 }
