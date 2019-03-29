@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: jacob
- * Date: 8/12/14
- * Time: 3:49 PM
- */
 
 class VuforiaClient {
     const JSON_CONTENT_TYPE = 'application/json';
@@ -181,11 +175,9 @@ class VuforiaClient {
 
     private function createMetadata() {
         $metadata = array(
-            'wine_id' => 0,
-            'image_url' => "http://cache.wine.com/labels/109702l.jpg",
-            'wine_com_url' => "test.com",
-            'vintage' => "Test",
-            'winery_name' => "Test"
+            'asset_id' => 0,
+            'image_url' => "",
+            'image_description' => ""
         );
         return base64_encode(json_encode($metadata));
     }
