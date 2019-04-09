@@ -1,10 +1,7 @@
 ﻿using UnityEngine;
 using Vuforia;
-using System.Collections;
-using System.IO;
 
-
-public class TakePhotoVuforiaCamera : MonoBehaviour, ITrackerEventHandler
+public class TakePhotoVuforiaCamera : MonoBehaviour, ITrackableEventHandler
 {
     private Image.PIXEL_FORMAT m_PixelFormat = Image.PIXEL_FORMAT.RGBA8888;//Image.PIXEL_FORMAT.RGB888;
     private bool m_RegisteredFormat = false;
@@ -14,8 +11,8 @@ public class TakePhotoVuforiaCamera : MonoBehaviour, ITrackerEventHandler
 
     void Start()
     {
-        VuforiaBehaviour qcarBehaviour = (VuforiaBehaviour)FindObjectOfType(typeof(VuforiaBehaviour));
-        if (qcarBehaviour)
+        VuforiaARController qcarBehaviour = VuforiaARController.Instance;
+        if (qcarBehaviour != null)
         {
             qcarBehaviour.RegisterTrackablesUpdatedCallback(OnTrackablesUpdated);
         }
@@ -88,5 +85,9 @@ public class TakePhotoVuforiaCamera : MonoBehaviour, ITrackerEventHandler
             //Application.CaptureScreenshot("UnityScreenshot.png");
         }
     }
-    
+
+    public void OnTrackableStateChanged(TrackableBehaviour.Status previousStatus, TrackableBehaviour.Status newStatus)
+    {
+        throw new System.NotImplementedException();
+    }
 }

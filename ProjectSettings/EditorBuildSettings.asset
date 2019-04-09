@@ -6,42 +6,24 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/SamplesResources/Scenes/0-Splash.unity
-    guid: 7238041e8d31f4d439b8851a5d4bb6fa
+    path: Assets/Scenes/Loading.unity
+    guid: 03078236e6712c24a9dd679dfe864861
   - enabled: 1
-    path: Assets/SamplesResources/Scenes/1-Menu.unity
-    guid: 1763269b9427b4a44957006a02f06c30
+    path: Assets/Scenes/Main.unity
+    guid: 5d5e8941e0945a445af097dd0f0eceb0
   - enabled: 1
-    path: Assets/SamplesResources/Scenes/2-Loading.unity
-    guid: 22b8f383624ec49ef986b9155d212ac1
+    path: Assets/Scenes/MainMenu.unity
+    guid: 6d529dd4275d6e34b8d538dd9ccf634a
   - enabled: 1
-    path: Assets/SamplesResources/Scenes/3-CloudReco.unity
-    guid: e434bc354d6d54b899b4fbf77b3118a3
+    path: Assets/Scenes/ManageTargets.unity
+    guid: dfd926e49339c924688422008dda944d
   - enabled: 1
-    path: Assets/SamplesResources/Scenes/3-CylinderTargets.unity
-    guid: b336b80db71704028995a1ea175dad4a
+    path: Assets/Scenes/PreviewTargets.unity
+    guid: 3fa8f23c29e838448b4f385f50637eaf
   - enabled: 1
-    path: Assets/SamplesResources/Scenes/3-GroundPlane.unity
-    guid: 3151807591542436f9ddfbf021a1545d
+    path: Assets/Scenes/SelectingObject.unity
+    guid: 79d405b65e64a4a209c0702322e6dd18
   - enabled: 1
-    path: Assets/SamplesResources/Scenes/3-ImageTargets.unity
-    guid: fa05b4f596c584dc79960294a1b601cc
-  - enabled: 1
-    path: Assets/SamplesResources/Scenes/3-ModelTargets.unity
-    guid: 530386685ba085242832bd5cc78d7222
-  - enabled: 1
-    path: Assets/SamplesResources/Scenes/3-MultiTargets.unity
-    guid: d5e3b9c64d95e4105b0f8c39cd4dc3bd
-  - enabled: 1
-    path: Assets/SamplesResources/Scenes/3-ObjectReco.unity
-    guid: 633a6cb9bd1704671bdefaba667099b2
-  - enabled: 1
-    path: Assets/SamplesResources/Scenes/3-UserDefinedTargets.unity
-    guid: 89ed636faaaf34959983482a021ac4e6
-  - enabled: 1
-    path: Assets/SamplesResources/Scenes/3-VirtualButtons.unity
-    guid: 319d9b92c918a47e192e3d3382615bc8
-  - enabled: 1
-    path: Assets/SamplesResources/Scenes/3-VuMark.unity
-    guid: d9b53b25a285640cf8ac170a80603e34
+    path: Assets/Scenes/UploadImageVuphoria.unity
+    guid: f8f64d6873a923a40ab779ae29235ae4
   m_configObjects: {}

@@ -51,8 +51,8 @@ public class MenuBarSceneLoader : SceneLoadPass
         {
             if (rootObject.name.Contains("LoadingManager"))
             {
-                Debug.Log("" + rootObject.GetComponent<LoadingScreen>().mChangeLevel);
-                return rootObject.GetComponent<LoadingScreen>().mChangeLevel;
+                Debug.Log("" + rootObject.GetComponent<LoadingScreen>().m_SceneReadyToActivate);
+                return rootObject.GetComponent<LoadingScreen>().m_SceneReadyToActivate;
             }
         }
         throw new System.Exception("There was an issue accessing LoadingManager. Ensure it's added to your scene builds and loaded before the MainBar Scene \"Main\"");

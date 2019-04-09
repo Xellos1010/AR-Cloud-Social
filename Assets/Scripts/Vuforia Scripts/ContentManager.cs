@@ -146,7 +146,7 @@ public class ContentManager : MonoBehaviour, ITrackableEventHandler
                                          where char.IsWhiteSpace(c) || char.IsLetterOrDigit(c)
                                   select c
                ).ToArray());
-                ToggleObject(objectManager.transform.FindChild(objectName).gameObject, true);
+                ToggleObject(objectManager.transform.Find(objectName).gameObject, true);
                 break;
             case ContentTypeEnum.Website:
                 Debug.Log("Website Being Activated");
@@ -231,7 +231,7 @@ public class ContentManager : MonoBehaviour, ITrackableEventHandler
         Debug.Log("Load URL was submitted");
         //TODO Toggle off augmented objects on application load
         objectManager.ToggleObjects(false);
-        ToggleObject(objectManager.transform.FindChild("websiteLoad").gameObject, true);
+        ToggleObject(objectManager.transform.Find("websiteLoad").gameObject, true);
         //TODO URL char removal more specific for ""        
     }
 

@@ -20,6 +20,7 @@ public class CloudRecoEventHandler : MonoBehaviour, ICloudRecoEventHandler
     CloudRecoBehaviour m_CloudRecoBehaviour;
     ObjectTracker m_ObjectTracker;
     TargetFinder m_TargetFinder;
+    private CloudRecoScanLine m_ScanLine;
     CloudRecoContentManager m_CloudRecoContentManager;
     TrackableSettings m_TrackableSettings;
     bool isTargetFinderScanning;
@@ -37,7 +38,7 @@ public class CloudRecoEventHandler : MonoBehaviour, ICloudRecoEventHandler
     /// <summary>
     /// The scan-line rendered in overlay when Cloud Reco is in scanning mode.
     /// </summary>
-    public ScanLine m_ScanLine;
+    
     public UnityEngine.UI.Image m_CloudActivityIcon;
     public UnityEngine.UI.Button m_ResetCloudTrackables;
     #endregion //PUBLIC_MEMBERS
@@ -49,7 +50,7 @@ public class CloudRecoEventHandler : MonoBehaviour, ICloudRecoEventHandler
     /// </summary>
     void Start()
     {
-        m_ScanLine = FindObjectOfType<ScanLine>();
+        m_ScanLine = FindObjectOfType<CloudRecoScanLine>();
         m_CloudRecoContentManager = FindObjectOfType<CloudRecoContentManager>();
         m_TrackableSettings = FindObjectOfType<TrackableSettings>();
 
@@ -65,7 +66,7 @@ public class CloudRecoEventHandler : MonoBehaviour, ICloudRecoEventHandler
     {
         if (m_CloudRecoBehaviour.CloudRecoInitialized)
         {
-            SetCloudActivityIconVisible(m_ObjectTracker.TargetFinder.IsRequesting());
+            SetCloudActivityIconVisible(m_ObjectTracker.GetTargetFinder<TargetFinder>().IsRequesting());
         }
 
         if (m_TrackableSettings != null)
@@ -86,7 +87,7 @@ public class CloudRecoEventHandler : MonoBehaviour, ICloudRecoEventHandler
 
         // get a reference to the Object Tracker, remember it
         m_ObjectTracker = TrackerManager.Instance.GetTracker<ObjectTracker>();
-        m_TargetFinder = m_ObjectTracker.TargetFinder;
+        m_TargetFinder = m_ObjectTracker.GetTargetFinder<TargetFinder>();
     }
 
     
@@ -112,7 +113,7 @@ public class CloudRecoEventHandler : MonoBehaviour, ICloudRecoEventHandler
 
         }
 
-        m_ScanLine.ShowScanLine(scanning);
+        CloudRecoScanLine.instance.ShowScanLine(scanning);
     }
 
     /// <summary>
@@ -234,6 +235,11 @@ public class CloudRecoEventHandler : MonoBehaviour, ICloudRecoEventHandler
         }
         
         TrackingLost();
+    }
+
+    public void OnInitialized(TargetFinder targetFinder)
+    {
+        throw new System.NotImplementedException();
     }
     #endregion // BUTTON_METHODS
 }

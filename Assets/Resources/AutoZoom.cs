@@ -1,13 +1,12 @@
 ﻿using UnityEngine;
-using System.Collections;
 using Vuforia;
 
 public class AutoZoom : MonoBehaviour {
 
 	void Start () 
 	{
-		VuforiaBehaviour.Instance.RegisterVuforiaStartedCallback(OnVuforiaStarted);
-		VuforiaBehaviour.Instance.RegisterOnPauseCallback(OnPaused);
+		VuforiaARController.Instance.RegisterVuforiaStartedCallback(OnVuforiaStarted);
+        VuforiaARController.Instance.RegisterOnPauseCallback(OnPaused);
 	}
 	
 	private void OnVuforiaStarted()

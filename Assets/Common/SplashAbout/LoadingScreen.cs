@@ -9,14 +9,13 @@ countries.
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
-using UnityEngine.SceneManagement;
 
 public class LoadingScreen : MonoBehaviour
 {
     #region PRIVATE_MEMBER_VARIABLES
     RawImage m_SpinnerImage;
     AsyncOperation m_AsyncOperation;
-    bool m_SceneReadyToActivate;
+    public bool m_SceneReadyToActivate;
     #endregion // PRIVATE_MEMBER_VARIABLES
 
     #region PUBLIC_MEMBER_VARIABLES
@@ -25,7 +24,7 @@ public class LoadingScreen : MonoBehaviour
 
     public static void Run()
     {
-        SceneManager.LoadSceneAsync("2-Loading");
+        UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("2-Loading");
     }
 
     #region MONOBEHAVIOUR_METHODS
@@ -67,17 +66,27 @@ public class LoadingScreen : MonoBehaviour
 
 
     #region PRIVATE_METHODS
-    IEnumerator LoadNextSceneAsync()
-    {
-        int nextSceneIndex = SceneManager.GetActiveScene().buildIndex + 1;
 
+    public void SetLevelToLoad(string sceneToLoad, float amountToWait = 0)
+    {
+        StartCoroutine(LoadNextSceneAsync(sceneToLoad,amountToWait));
+    }
+
+    IEnumerator LoadNextSceneAsync(string sceneToLoad = "", float amountToWait = 0)
+    {
+        int nextSceneIndex = 0;
+        if (sceneToLoad == "")
+            nextSceneIndex = UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex + 1;
+        else
+            nextSceneIndex = UnityEngine.SceneManagement.SceneManager.GetSceneByName(sceneToLoad).buildIndex;
+        yield return new WaitForSeconds(amountToWait);
         if (string.IsNullOrEmpty(SceneToLoad))
         {
-            m_AsyncOperation = SceneManager.LoadSceneAsync(nextSceneIndex);
+            m_AsyncOperation = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(nextSceneIndex);
         }
         else
         {
-            m_AsyncOperation = SceneManager.LoadSceneAsync(SceneToLoad);
+            m_AsyncOperation = UnityEngine.SceneManagement. SceneManager.LoadSceneAsync(SceneToLoad);
         }
 
         m_AsyncOperation.allowSceneActivation = false;

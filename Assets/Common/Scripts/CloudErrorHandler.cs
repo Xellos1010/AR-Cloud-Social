@@ -151,5 +151,30 @@ public class CloudErrorHandler : MonoBehaviour, ICloudRecoEventHandler
         UnityEngine.SceneManagement.SceneManager.LoadScene(startLevel);
     }
 
+    void ICloudRecoEventHandler.OnInitialized(TargetFinder targetFinder)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    void ICloudRecoEventHandler.OnInitError(TargetFinder.InitState initError)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    void ICloudRecoEventHandler.OnUpdateError(TargetFinder.UpdateState updateError)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    void ICloudRecoEventHandler.OnStateChanged(bool scanning)
+    {
+        throw new System.NotImplementedException();
+    }
+
+    void ICloudRecoEventHandler.OnNewSearchResult(TargetFinder.TargetSearchResult targetSearchResult)
+    {
+        throw new System.NotImplementedException();
+    }
+
     #endregion PRIVATE_METHODS
 }
