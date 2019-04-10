@@ -1,42 +1,35 @@
 ﻿/*===============================================================================
-Copyright (c) 2016-2017 PTC Inc. All Rights Reserved.
+Copyright (c) 2016-2018 PTC Inc. All Rights Reserved.
  
 Copyright (c) 2015 Qualcomm Connected Experiences, Inc. All Rights Reserved.
 ===============================================================================*/
 using UnityEngine;
-using System.Collections;
 using Vuforia;
 
 public class InitErrorHandler : MonoBehaviour
 {
-    #region PUBLIC_MEMBER_VARIABLES
-    public UnityEngine.UI.Text errorText;
-    #endregion //PUBLIC_MEMBER_VARABLES
-
-
     #region PRIVATE_MEMBER_VARIABLES
-    private Canvas errorCanvas;
-    private string key;
-    private string errorMsg;
-    #endregion //PRIVATE_MEMBER_VARIABLES
+    string key;
+    string errorMsg;
+    const string errorTitle = "Vuforia Initialization Error";
+    #endregion PRIVATE_MEMBER_VARIABLES
 
 
     #region MONOBEHAVIOUR_METHODS
     void Awake()
     {
-        // Get the UI Canvas that contains (parent of) the error text box
-        if (errorText)
-        {
-            errorCanvas = errorText.GetComponentsInParent<Canvas>(true)[0];
-        }
-
-        VuforiaRuntime.Instance.RegisterVuforiaInitErrorCallback(OnInitError);
+        VuforiaRuntime.Instance.RegisterVuforiaInitErrorCallback(OnVuforiaInitError);
     }
-    #endregion //MONOBEHAVIOUR_METHODS
+
+    void OnDestroy()
+    {
+        VuforiaRuntime.Instance.UnregisterVuforiaInitErrorCallback(OnVuforiaInitError);
+    }
+    #endregion MONOBEHAVIOUR_METHODS
 
 
     #region PRIVATE_METHODS
-    private void OnInitError(VuforiaUnity.InitError error)
+    void OnVuforiaInitError(VuforiaUnity.InitError error)
     {
         if (error != VuforiaUnity.InitError.INIT_SUCCESS)
         {
@@ -44,7 +37,7 @@ public class InitErrorHandler : MonoBehaviour
         }
     }
 
-    private void ShowErrorMessage(VuforiaUnity.InitError errorCode)
+    void ShowErrorMessage(VuforiaUnity.InitError errorCode)
     {
         switch (errorCode)
         {
@@ -64,7 +57,7 @@ public class InitErrorHandler : MonoBehaviour
                     "Vuforia App key is invalid. \n" +
                     "Please get a valid key, by logging into your account at " +
                     "developer.vuforia.com and creating a new project. \n\n" +
-                    getKeyInfo();
+                    GetKeyInfo();
                 break;
             case VuforiaUnity.InitError.INIT_LICENSE_ERROR_NO_NETWORK_TRANSIENT:
                 errorMsg = "Unable to contact server. Please try again later.";
@@ -76,14 +69,14 @@ public class InitErrorHandler : MonoBehaviour
                 errorMsg =
                     "This App license key has been cancelled and may no longer be used. " +
                     "Please get a new license key. \n\n" +
-                    getKeyInfo();
+                    GetKeyInfo();
                 break;
             case VuforiaUnity.InitError.INIT_LICENSE_ERROR_PRODUCT_TYPE_MISMATCH:
                 errorMsg =
                     "Vuforia App key is not valid for this product. Please get a valid key, " +
                     "by logging into your account at developer.vuforia.com and choosing the " +
                     "right product type during project creation. \n\n" +
-                    getKeyInfo() + "\n\n" +
+                    GetKeyInfo() + "\n\n" +
                     "Note that Universal Windows Platform (UWP) apps require " +
                     "a license key created on or after August 9th, 2016.";
                 break;
@@ -110,20 +103,11 @@ public class InitErrorHandler : MonoBehaviour
         var errorTextConsole = errorMsg.Replace("<color=red>", "").Replace("</color>", "");
 
         Debug.LogError("Vuforia initialization failed: " + errorCode + "\n\n" + errorTextConsole);
-
-        if (errorText)
-            errorText.text = errorMsg;
-
-        if (errorCanvas)
-        {
-            // Show the error message UI canvas
-            errorCanvas.transform.parent.position = Vector3.zero;
-            errorCanvas.gameObject.SetActive(true);
-            errorCanvas.enabled = true;
-        }
+        
+        MessageBox.DisplayMessageBox(errorTitle, errorMsg, true, OnErrorDialogClose);
     }
 
-    string getKeyInfo()
+    string GetKeyInfo()
     {
         string key = VuforiaConfiguration.Instance.Vuforia.LicenseKey;
         string keyInfo;

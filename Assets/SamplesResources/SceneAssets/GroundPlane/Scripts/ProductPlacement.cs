@@ -10,112 +10,106 @@ using Vuforia;
 
 public class ProductPlacement : MonoBehaviour
 {
-
     #region PUBLIC_MEMBERS
     public bool IsPlaced { get; private set; }
-
-    [Header("Placement Controls")]
-    public GameObject m_TranslationIndicator;
-    public GameObject m_RotationIndicator;
-    public Transform Floor;
-
-    [Header("Placement Augmentation Size Range")]
-    [Range(0.1f, 2.0f)]
-    public float ProductSize = 0.65f;
     #endregion // PUBLIC_MEMBERS
 
 
     #region PRIVATE_MEMBERS
-    Material[] chairMaterials, chairMaterialsTransparent;
-    Material ChairShadow, ChairShadowTransparent;
+    [Header("Augmentation Objects")]
+    [SerializeField] GameObject chair = null;
+    [SerializeField] GameObject chairShadow = null;
+
+    [Header("Control Indicators")]
+    [SerializeField] GameObject translationIndicator = null;
+    [SerializeField] GameObject rotationIndicator = null;
+
+    [Header("Augmentation Size")]
+    [Range(0.1f, 2.0f)]
+    [SerializeField] float productSize = 0.65f;
+
     MeshRenderer chairRenderer;
-    [SerializeField]
-    MeshRenderer shadowRenderer;
+    MeshRenderer chairShadowRenderer;
+    Material[] chairMaterials, chairMaterialsTransparent;
+    Material chairShadowMaterial, chairShadowMaterialTransparent;
 
-    const string EmulatorGroundPlane = "Emulator Ground Plane";
-
-    GroundPlaneUI m_GroundPlaneUI;
+    GroundPlaneUI groundPlaneUI;
     Camera mainCamera;
     Ray cameraToPlaneRay;
     RaycastHit cameraToPlaneHit;
 
-    float m_PlacementAugmentationScale;
-    Vector3 ProductScaleVector;
+    float augmentationScale;
+    Vector3 productScale;
+    string floorName;
+
+    // Property which returns whether chair visibility conditions are met
+    bool ChairVisibilityConditionsMet
+    {
+        // The Chair should only be visible if the following conditions are met:
+        // 1. Tracking Status is Tracked or Limited
+        // 2. Ground Plane Hit was received for this frame
+        // 3. The Plane Mode is equal to PLACEMENT
+        get
+        {
+            return
+                PlaneManager.TrackingStatusIsTrackedOrLimited &&
+                PlaneManager.GroundPlaneHitReceived &&
+                (PlaneManager.CurrentPlaneMode == PlaneManager.PlaneMode.PLACEMENT);
+        }
+    }
     #endregion // PRIVATE_MEMBERS
 
 
     #region MONOBEHAVIOUR_METHODS
     void Start()
     {
-        chairRenderer = GetComponent<MeshRenderer>();
+        this.mainCamera = Camera.main;
+        this.groundPlaneUI = FindObjectOfType<GroundPlaneUI>();
+        this.chairRenderer = this.chair.GetComponent<MeshRenderer>();
+        this.chairShadowRenderer = this.chairShadow.GetComponent<MeshRenderer>();
 
-        chairMaterials = new Material[]
-        {
-            Resources.Load<Material>("ChairBody"),
-            Resources.Load<Material>("ChairFrame")
-        };
-
-        chairMaterialsTransparent = new Material[]
-        {
-            Resources.Load<Material>("ChairBodyTransparent"),
-            Resources.Load<Material>("ChairFrameTransparent")
-        };
-
-        ChairShadow = Resources.Load<Material>("ChairShadow");
-        ChairShadowTransparent = Resources.Load<Material>("ChairShadowTransparent");
-
-        m_GroundPlaneUI = FindObjectOfType<GroundPlaneUI>();
-
-        // Enable floor collider if running on device; Disable if running in PlayMode
-        Floor.gameObject.SetActive(!VuforiaRuntimeUtilities.IsPlayMode());
+        SetupMaterials();
+        SetupFloor();
 
 
-        mainCamera = Camera.main;
+        this.augmentationScale = VuforiaRuntimeUtilities.IsPlayMode() ? 0.1f : this.productSize;
 
-        m_PlacementAugmentationScale = VuforiaRuntimeUtilities.IsPlayMode() ? 0.1f : ProductSize;
+        this.productScale =
+            new Vector3(this.augmentationScale,
+                        this.augmentationScale,
+                        this.augmentationScale);
 
-        ProductScaleVector =
-            new Vector3(m_PlacementAugmentationScale,
-                        m_PlacementAugmentationScale,
-                        m_PlacementAugmentationScale);
-
-        gameObject.transform.localScale = ProductScaleVector;
+        this.chair.transform.localScale = this.productScale;
     }
 
 
     void Update()
     {
-        if (PlaneManager.planeMode == PlaneManager.PlaneMode.PLACEMENT)
+        if (PlaneManager.CurrentPlaneMode == PlaneManager.PlaneMode.PLACEMENT)
         {
-            shadowRenderer.enabled = chairRenderer.enabled = (IsPlaced || PlaneManager.GroundPlaneHitReceived);
-            EnablePreviewModeTransparency(!IsPlaced);
-            if (!IsPlaced)
-                UtilityHelper.RotateTowardCamera(gameObject);
-        }
-        else
-        {
-            shadowRenderer.enabled = chairRenderer.enabled = IsPlaced;
+            EnablePreviewModeTransparency(!this.IsPlaced);
+            if (!this.IsPlaced)
+                UtilityHelper.RotateTowardCamera(this.chair);
         }
 
-        if (PlaneManager.planeMode == PlaneManager.PlaneMode.PLACEMENT && IsPlaced)
+        if (PlaneManager.CurrentPlaneMode == PlaneManager.PlaneMode.PLACEMENT && this.IsPlaced)
         {
-            m_RotationIndicator.SetActive(Input.touchCount == 2);
+            this.rotationIndicator.SetActive(Input.touchCount == 2);
 
-            m_TranslationIndicator.SetActive(
-                (TouchHandler.IsSingleFingerDragging || TouchHandler.IsSingleFingerStationary) && !m_GroundPlaneUI.IsCanvasButtonPressed());
+            this.translationIndicator.SetActive(
+                (TouchHandler.IsSingleFingerDragging || TouchHandler.IsSingleFingerStationary) && !this.groundPlaneUI.IsCanvasButtonPressed());
 
             if (TouchHandler.IsSingleFingerDragging || (VuforiaRuntimeUtilities.IsPlayMode() && Input.GetMouseButton(0)))
             {
-                if (!m_GroundPlaneUI.IsCanvasButtonPressed())
+                if (!this.groundPlaneUI.IsCanvasButtonPressed())
                 {
-                    cameraToPlaneRay = mainCamera.ScreenPointToRay(Input.mousePosition);
+                    this.cameraToPlaneRay = this.mainCamera.ScreenPointToRay(Input.mousePosition);
 
-                    if (Physics.Raycast(cameraToPlaneRay, out cameraToPlaneHit))
+                    if (Physics.Raycast(this.cameraToPlaneRay, out this.cameraToPlaneHit))
                     {
-                        if (cameraToPlaneHit.collider.gameObject.name ==
-                            (VuforiaRuntimeUtilities.IsPlayMode() ? EmulatorGroundPlane : Floor.name))
+                        if (this.cameraToPlaneHit.collider.gameObject.name == floorName)
                         {
-                            gameObject.PositionAt(cameraToPlaneHit.point);
+                            this.chair.PositionAt(this.cameraToPlaneHit.point);
                         }
                     }
                 }
@@ -123,10 +117,17 @@ public class ProductPlacement : MonoBehaviour
         }
         else
         {
-            m_RotationIndicator.SetActive(false);
-            m_TranslationIndicator.SetActive(false);
+            this.rotationIndicator.SetActive(false);
+            this.translationIndicator.SetActive(false);
         }
+    }
 
+    void LateUpdate()
+    {
+        if (!this.IsPlaced)
+        {
+            SetVisible(this.ChairVisibilityConditionsMet);
+        }
     }
     #endregion // MONOBEHAVIOUR_METHODS
 
@@ -134,34 +135,80 @@ public class ProductPlacement : MonoBehaviour
     #region PUBLIC_METHODS
     public void Reset()
     {
-        transform.position = Vector3.zero;
-        transform.localEulerAngles = Vector3.zero;
-        transform.localScale = ProductScaleVector;
+        this.chair.transform.position = Vector3.zero;
+        this.chair.transform.localEulerAngles = Vector3.zero;
+        this.chair.transform.localScale = this.productScale;
     }
 
     public void SetProductAnchor(Transform transform)
     {
         if (transform)
         {
-            IsPlaced = true;
-            gameObject.transform.SetParent(transform);
-            gameObject.transform.localPosition = Vector3.zero;
-            UtilityHelper.RotateTowardCamera(gameObject);
+            this.IsPlaced = true;
+            this.chair.transform.SetParent(transform);
+            this.chair.transform.localPosition = Vector3.zero;
+            UtilityHelper.RotateTowardCamera(this.chair);
         }
         else
         {
-            IsPlaced = false;
-            gameObject.transform.SetParent(null);
+            this.IsPlaced = false;
+            this.chair.transform.SetParent(null);
         }
     }
     #endregion // PUBLIC_METHODS
 
 
     #region PRIVATE_METHODS
+    void SetupMaterials()
+    {
+        this.chairMaterials = new Material[]
+        {
+            Resources.Load<Material>("ChairBody"),
+            Resources.Load<Material>("ChairFrame")
+        };
+
+        this.chairMaterialsTransparent = new Material[]
+        {
+            Resources.Load<Material>("ChairBodyTransparent"),
+            Resources.Load<Material>("ChairFrameTransparent")
+        };
+
+        this.chairShadowMaterial = Resources.Load<Material>("ChairShadow");
+        this.chairShadowMaterialTransparent = Resources.Load<Material>("ChairShadowTransparent");
+    }
+
+    void SetupFloor()
+    {
+        if (VuforiaRuntimeUtilities.IsPlayMode())
+        {
+            this.floorName = "Emulator Ground Plane";
+        }
+        else
+        {
+            this.floorName = "Floor";
+            GameObject floor = new GameObject(this.floorName, typeof(BoxCollider));
+            floor.transform.SetParent(this.chair.transform.parent);
+            floor.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+            floor.transform.localScale = Vector3.one;
+            floor.GetComponent<BoxCollider>().size = new Vector3(100f, 0, 100f);
+        }
+    }
+
+    /// <summary>
+    /// This method is used prior to chair being placed. Once placed, chair visibility is controlled
+    /// by the DefaultTrackableEventHandler.
+    /// </summary>
+    /// <param name="visible">bool</param>
+    void SetVisible(bool visible)
+    {
+        // Set the visibility of the chair and it's shadow
+        this.chairRenderer.enabled = this.chairShadowRenderer.enabled = visible;
+    }
+
     void EnablePreviewModeTransparency(bool previewEnabled)
     {
-        chairRenderer.materials = previewEnabled ? chairMaterialsTransparent : chairMaterials;
-        shadowRenderer.material = previewEnabled ? ChairShadowTransparent : ChairShadow;
+        this.chairRenderer.materials = previewEnabled ? this.chairMaterialsTransparent : this.chairMaterials;
+        this.chairShadowRenderer.material = previewEnabled ? this.chairShadowMaterialTransparent : this.chairShadowMaterial;
     }
     #endregion // PRIVATE_METHODS
 

@@ -12,7 +12,7 @@ public class CheckValidTitle : MonoBehaviour {
         }
         else
         {
-            SceneManager.LoadIngameScene("Choose3DModel");
+            StaticPanelManager.LoadIngameScene("Choose3DModel");
         }
 	}
 

@@ -109,7 +109,7 @@ public class CropManager : MonoBehaviour
         DebugPanel.SetActive(true);*/
         VWSCloudConnecter.instance.SetPreviewImage(image);
         //SetCropTexture(image);
-        SceneManager.LoadIngameScene("PreviewWindow"); //TODO Abstract to find scene names crop - set to static to resolve bug which said referenced object not available
+        StaticPanelManager.LoadIngameScene("PreviewWindow"); //TODO Abstract to find scene names crop - set to static to resolve bug which said referenced object not available
     }
 
     string pathImageSaved;

@@ -8,90 +8,148 @@ countries.
 ===============================================================================*/
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEditor;
 using System.Collections;
+using System;
 
 public class LoadingScreen : MonoBehaviour
 {
     #region PRIVATE_MEMBER_VARIABLES
-    RawImage m_SpinnerImage;
-    AsyncOperation m_AsyncOperation;
-    public bool m_SceneReadyToActivate;
+    //SceneManagement cannot access scenes build index by string unless scene is preloaded. 
+    //Initialize Dictionary with string to build number.
     #endregion // PRIVATE_MEMBER_VARIABLES
 
-    #region PUBLIC_MEMBER_VARIABLES
-    public static string SceneToLoad { get; set; }
-    #endregion // PUBLIC_MEMBER_VARIABLES
+    #region Internal_Variables
+    internal bool m_SceneReadyToActivate = false;
+    #endregion
 
-    public static void Run()
-    {
-        UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("2-Loading");
-    }
+    #region PUBLIC_MEMBER_VARIABLES
+    public RawImage m_SpinnerImage;
+    public RawImage m_BackgroundImage;
+    public RawImage m_logo;
+    public static string SceneToLoad { get; set; }
+    public float rotationSpeed = 90;
+    bool loadingGraphicsToggled;
+    #endregion // PUBLIC_MEMBER_VARIABLES
 
     #region MONOBEHAVIOUR_METHODS
     void Start()
     {
-        m_SpinnerImage = GetComponentInChildren<RawImage>();
         Application.backgroundLoadingPriority = ThreadPriority.Low;
-        StartCoroutine(LoadNextSceneAsync());
+        StartCoroutine(LoadInitialScenes());
+    }
+
+    private void OnEnable()
+    {
+        SceneLoadManagement.loadingSceneFinished += SceneLoadManagement_loadingSceneFinished;
+        SceneLoadManagement.loadingScene += SceneLoadManagement_loadingScene;
+        SceneLoadManagement.unloadingScene += SceneLoadManagement_unloadingScene;
+    }
+
+    private void SceneLoadManagement_unloadingScene(string sceneToLoad)
+    {
+        ToggleLoadingGraphics(true);
+    }
+
+    private void SceneLoadManagement_loadingScene(string sceneToLoad)
+    {
+        ToggleLoadingGraphics(true);
+    }
+
+    private void SceneLoadManagement_loadingSceneFinished(string sceneToLoad)
+    {
+        Debug.Log("Scene Loaded = " + sceneToLoad);
+        //Check if scene to load is a valid button option for main menu. Check with Button Manager
+        if (sceneToLoad == "MainMenu" || sceneToLoad == "UploadImageVuphoria" || sceneToLoad == "PreviewTargets")
+        {
+            ToggleLoadingGraphics(false);
+            m_SceneReadyToActivate = false;
+        }
+    }
+
+    private void OnDisable()
+    {
+        SceneLoadManagement.loadingSceneFinished -= SceneLoadManagement_loadingSceneFinished;
+    }
+
+    private IEnumerator LoadInitialScenes()
+    {
+        //Load Main Menu Bar
+        yield return SceneLoadManagement.LoadSceneASync("MenuBar");
+
+
+        yield return new WaitForSeconds(.333f);
+        //Load Main Scene
+        yield return SceneLoadManagement.LoadSceneASync("MainMenu");
+        SceneLoadManagement.mainSceneLoaded = "MainMenu";
+    }
+
+    private void ToggleLoadingGraphics(bool onOFf)
+    {
+        loadingGraphicsToggled = onOFf;
+        m_BackgroundImage.enabled = onOFf;
+        m_SpinnerImage.enabled = onOFf;
+        m_logo.enabled = onOFf;
     }
 
     void Update()
     {
-        if (m_SpinnerImage)
+        if (SceneLoadManagement.m_AsyncOperation != null)
         {
-            if (!m_SceneReadyToActivate)
+            //TODO Stop spinner when all scenes loaded
+            if (m_SpinnerImage)
             {
-                m_SpinnerImage.rectTransform.Rotate(Vector3.forward, 90.0f * Time.deltaTime);
+                if (!m_SceneReadyToActivate)
+                {
+                    m_SpinnerImage.rectTransform.Rotate(Vector3.forward, rotationSpeed * Time.deltaTime);
+                }
+            }
+            if (SceneLoadManagement.m_AsyncOperation.progress < 0.9f)
+            {
+                Debug.Log("Scene Loading Progress: " + SceneLoadManagement.m_AsyncOperation.progress * 100 + "%");
             }
             else
             {
-                m_SpinnerImage.enabled = false;
+                SceneLoadManagement.m_AsyncOperation.allowSceneActivation = true;
+                SceneLoadManagement.m_AsyncOperation = null;
             }
         }
+    }
 
-        if (m_AsyncOperation != null)
-        {
-            if (m_AsyncOperation.progress < 0.9f)
-            {
-                Debug.Log("Scene Loading Progress: " + m_AsyncOperation.progress * 100 + "%");
-            }
-            else
-            {
-                m_SceneReadyToActivate = true;
-                m_AsyncOperation.allowSceneActivation = true;
-            }
-        }
+    internal void LoadMainMenuTest()
+    {
+        StartCoroutine(SceneLoadManagement.LoadSceneASync("MainMenu"));
+    }
+
+    internal void LoadMenuBarTest()
+    {
+        StartCoroutine(SceneLoadManagement.LoadSceneASync("MenuBar"));
     }
     #endregion // MONOBEHAVIOUR_METHODS
-
-
-    #region PRIVATE_METHODS
-
-    public void SetLevelToLoad(string sceneToLoad, float amountToWait = 0)
-    {
-        StartCoroutine(LoadNextSceneAsync(sceneToLoad,amountToWait));
-    }
-
-    IEnumerator LoadNextSceneAsync(string sceneToLoad = "", float amountToWait = 0)
-    {
-        int nextSceneIndex = 0;
-        if (sceneToLoad == "")
-            nextSceneIndex = UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex + 1;
-        else
-            nextSceneIndex = UnityEngine.SceneManagement.SceneManager.GetSceneByName(sceneToLoad).buildIndex;
-        yield return new WaitForSeconds(amountToWait);
-        if (string.IsNullOrEmpty(SceneToLoad))
-        {
-            m_AsyncOperation = UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(nextSceneIndex);
-        }
-        else
-        {
-            m_AsyncOperation = UnityEngine.SceneManagement. SceneManager.LoadSceneAsync(SceneToLoad);
-        }
-
-        m_AsyncOperation.allowSceneActivation = false;
-
-        yield return m_AsyncOperation;
-    }
-    #endregion // PRIVATE_METHODS
 }
+
+#if UNITY_EDITOR
+[CustomEditor(typeof(LoadingScreen))]
+public class LoadingScreenEditor : Editor
+{
+    private LoadingScreen _target;
+
+    private void OnEnable()
+    {
+        _target = (LoadingScreen)target;
+    }
+
+    public override void OnInspectorGUI()
+    {
+        base.OnInspectorGUI();
+        if(GUILayout.Button("Load Menu Bar"))
+        {
+            _target.LoadMenuBarTest();
+        }
+        if (GUILayout.Button("Load Main Menu"))
+        {
+            _target.LoadMainMenuTest();
+        }
+    }
+}
+#endif

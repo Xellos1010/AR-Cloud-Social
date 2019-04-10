@@ -15,7 +15,6 @@ using Vuforia;
 public class ContentManager : MonoBehaviour, ITrackableEventHandler
 {
     private string urlToLoad = "";
-    public YoutubeVideo youtubeObject;
     public MediaPlayerCtrl mediaController;
     public UnityEngine.UI.Text urlTitle;
 
@@ -197,12 +196,13 @@ public class ContentManager : MonoBehaviour, ITrackableEventHandler
         string videoURL;
 
         //Load the In-Game scene to load the video. Using this for a smoother user experience since RequestVideo URL Takes a while to load
-        InGameSceneManager.instance.LoadIngameScene("VideoLoader");
+        PanelManager.instance.LoadIngameScene("VideoLoader");
 
         //Use this to place easy movie texture on the cloud target.
         //ToggleObject(objectManager.transform.FindChild("videoManager").gameObject, true);
         yield return new WaitForSeconds(1);
-
+        //TODO: Add new video loader
+        /*
         //Pass the youtube video id to RequestVideo in YoutubeVideo and the system returns the video .mp4 file.
         yield return youtubeObject.RequestVideo(urlToLoad, quality, out videoURL);
 
@@ -214,6 +214,7 @@ public class ContentManager : MonoBehaviour, ITrackableEventHandler
         loadingText.text = "Press play to play video";
         //mediaController.Play();
         //Handheld.PlayFullScreenMovie(videoURL);
+        */
     }
 
     T ParseEnum<T>(string value)

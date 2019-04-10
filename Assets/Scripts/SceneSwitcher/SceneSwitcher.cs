@@ -6,13 +6,13 @@ public class SceneSwitcher : MonoBehaviour {
 		
 	void Start()
     {
-        SceneManager.DisableAllScenes();
-        SceneManager.InitializeDefaultScene();
+        StaticPanelManager.DisableAllScenes();
+        StaticPanelManager.InitializeDefaultScene();
     }
 
     public void ActivateScene(string name)
     {
-        SceneManager.LoadIngameScene(name);
+        StaticPanelManager.LoadIngameScene(name);
     }
 
     public void ActivateScene(GameObject sceneObject)

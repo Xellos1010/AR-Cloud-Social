@@ -7,6 +7,7 @@ countries.
 
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class AboutManager : MonoBehaviour
 {
@@ -50,20 +51,23 @@ public class AboutManager : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyUp(KeyCode.Return))
+        if (Input.GetKeyUp(KeyCode.Return) || Input.GetKeyUp(KeyCode.JoystickButton0))
         {
             LoadNextScene();
         }
 
         if (Input.GetKeyUp(KeyCode.Escape))
         {
+            if (Application.isEditor)
+            {
 #if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
-#elif UNITY_ANDROID
-			// On Android, the Back button is mapped to the Esc key
-			// Exit app
-            Application.Quit();
+                UnityEditor.EditorApplication.isPlaying = false;
 #endif
+            }
+            else
+            {
+                Application.Quit();
+            }
         }
     }
     #endregion // MONOBEHAVIOUR_METHODS
@@ -77,7 +81,8 @@ public class AboutManager : MonoBehaviour
 
         Text[] textElements = GetComponentsInChildren<Text>();
         textElements[0].text = title;
-        textElements[1].text = description;
+        TextMeshProUGUI textMeshProUGUI = GetComponentInChildren<TextMeshProUGUI>();
+        textMeshProUGUI.text = description;
     }
 
 }

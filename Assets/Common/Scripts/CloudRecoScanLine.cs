@@ -4,15 +4,11 @@ Copyright (c) 2016-2018 PTC Inc. All Rights Reserved.
 Vuforia is a trademark of PTC Inc., registered in the United States and other 
 countries.
 ===============================================================================*/
-using System;
 using UnityEngine;
 using Vuforia;
 
 public class CloudRecoScanLine : MonoBehaviour
 {
-
-    public static CloudRecoScanLine instance;
-
     #region PRIVATE_MEMBERS
 
     const float SCAN_DURATION = 4; //seconds
@@ -36,7 +32,6 @@ public class CloudRecoScanLine : MonoBehaviour
         m_Camera = Camera.main;
         m_Renderer = GetComponent<Renderer>();
         m_CloudRecoBehaviour = FindObjectOfType<CloudRecoBehaviour>();
-        instance = this;
 
         // Cache the Cloud enable state so that we can reset the scanline
         // when the enabled state changes
@@ -88,11 +83,6 @@ public class CloudRecoScanLine : MonoBehaviour
             float scaleY = scaleX / 32;
             transform.localScale = new Vector3(scaleX, scaleY, 1.0f);
         }
-    }
-
-    internal void ShowScanLine(bool scanning)
-    {
-        m_CloudRecoBehaviour.CloudRecoEnabled = scanning;
     }
 
     #endregion // MONOBEHAVIOUR_METHODS

@@ -1,5 +1,5 @@
 ﻿/*==============================================================================
-Copyright (c) 2018 PTC Inc. All Rights Reserved.
+Copyright (c) 2019 PTC Inc. All Rights Reserved.
 
 Vuforia is a trademark of PTC Inc., registered in the United States and other
 countries.
@@ -40,4 +40,23 @@ public static class UtilityHelper
             component.enabled = enable;
     }
 
+    public static int GetNumberOfActiveAnchors()
+    {
+        int numOfAnchors = 0;
+
+        Vuforia.StateManager stateManager = Vuforia.TrackerManager.Instance.GetStateManager();
+
+        if (stateManager != null)
+        {
+            foreach (Vuforia.TrackableBehaviour behaviour in stateManager.GetActiveTrackableBehaviours())
+            {
+                if (behaviour is Vuforia.AnchorBehaviour)
+                {
+                    numOfAnchors += 1;
+                    Debug.Log("Anchor #" + numOfAnchors + ": " + behaviour.TrackableName);
+                }
+            }
+        }
+        return numOfAnchors;
+    }
 }

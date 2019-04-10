@@ -52,28 +52,6 @@ public class VWSCloudConnecter : MonoBehaviour {
     public UnityEngine.UI.Dropdown targetIDDropdown;
     public UnityEngine.UI.RawImage CapturePreview;
 
-
-    MenuBarSceneLoader menuBarInstance
-    {
-        get
-        {
-            if (_menuBarInstance == null)
-            {
-                GameObject[] SceneObjects = UnityEngine.SceneManagement.SceneManager.GetSceneByName("Main").GetRootGameObjects();
-                foreach (GameObject rootObject in SceneObjects)
-                {
-                    if (rootObject.name.Contains("SceneManager"))
-                    {
-                        _menuBarInstance = rootObject.GetComponent<MenuBarSceneLoader>();
-                    }
-                }
-            }
-            return _menuBarInstance;
-        }
-    }
-
-    MenuBarSceneLoader _menuBarInstance;
-
     public GameObject[] AreYouSureWindows;
 
     void Awake()
@@ -83,18 +61,14 @@ public class VWSCloudConnecter : MonoBehaviour {
             GetAllImageTargetIDS();
     }
 
-    // lets make money while you transfer your image to the cloud!!!
-    //
-    // grobm
-    // 9/8/16
-    //
-
     public void ShowAd()
     {
+        /*
         if (Advertisement.IsReady())
         {
             Advertisement.Show();
         }
+        */
     }
 
 
@@ -170,7 +144,7 @@ public class VWSCloudConnecter : MonoBehaviour {
 
     IEnumerator UploadFileCo()
     {
-        SceneManager.LoadIngameScene("Upload Progress");
+        StaticPanelManager.LoadIngameScene("Upload Progress");
         //TODO Change the Main Bar Light to Yellow
         WriteToPanel("Uploading Photo To Database");
 
@@ -215,21 +189,20 @@ public class VWSCloudConnecter : MonoBehaviour {
     private void ChangeMainBarLightYellow()
     {
         Debug.Log("Changing main bar to yellow");
-        menuBarInstance.BlinkButtonPendingColor();
+        MenuBarStateManager.instance.BlinkButtonPendingColor();
     }
 
     private void CreateTargetIDChecker(string targetID)
     {
         GameObject loadCheckManager = new GameObject("LoadCheckManager");
         CheckUploadProgress checkingProgress = loadCheckManager.AddComponent<CheckUploadProgress>();
-        checkingProgress.GetCheckTargetIDInfo(targetID,menuBarInstance,mainURL);
-        StartCoroutine(checkingProgress.PostToFacebook(uploadImageURLFBShare + ImageTitle.text + ".jpg"));
+        checkingProgress.GetCheckTargetIDInfo(targetID, MenuBarStateManager.instance, mainURL);
         DontDestroyOnLoad(loadCheckManager);
     }
 
     private void ChangeMainBarLightRed()
     {
-        menuBarInstance.ErrorButtonPending();
+        MenuBarStateManager.instance.ErrorButtonPending();
     }
 
     IEnumerator UploadFileCo(UnityEngine.UI.InputField inputStatus)
@@ -307,7 +280,7 @@ public class VWSCloudConnecter : MonoBehaviour {
                 WriteToPanel("Getting Target ID's done :" + getTargetIDs.text);
                 jsonTargetSummary = new JSONObject(getTargetIDs.text);
                 Debug.Log(jsonTargetSummary);
-                SceneManager.LoadIngameScene("DisplayText");
+                StaticPanelManager.LoadIngameScene("DisplayText");
             }
             else
                 WriteToPanel("Error during Getting Target ID's: " + getTargetIDs.error);
@@ -350,7 +323,7 @@ public class VWSCloudConnecter : MonoBehaviour {
                 WriteToPanel("Getting Target ID's done :" + getTargetIDs.text);
                 jsonTargetSummary = new JSONObject(getTargetIDs.text);
                 Debug.Log(jsonTargetSummary);
-                SceneManager.LoadIngameScene("DisplayText");
+                StaticPanelManager.LoadIngameScene("DisplayText");
             }
             else
                 WriteToPanel("Error during Getting Target ID's: " + getTargetIDs.error);
@@ -560,7 +533,7 @@ public class VWSCloudConnecter : MonoBehaviour {
 
     public void UpdateImageTarget()
     {
-        SceneManager.LoadIngameScene("UpdateImageTarget");
+        StaticPanelManager.LoadIngameScene("UpdateImageTarget");
     }
 
     public void PreviewImage(Texture2D image,Texture2D mask)
@@ -568,14 +541,14 @@ public class VWSCloudConnecter : MonoBehaviour {
         WriteToPanel("Previewing Image, Cutting out Mask");
         SetPreviewImage(CutOutMask.CutOut(image, mask));
         WriteToPanel("Mask Cutting Complete");
-        SceneManager.LoadIngameScene("PreviewWindow");
+        StaticPanelManager.LoadIngameScene("PreviewWindow");
     }
 
     public void PreviewImage(Texture2D image)
     {
         WriteToPanel("Setting Preview Image");
         SetPreviewImage(image);
-        SceneManager.LoadIngameScene("PreviewWindow");
+        StaticPanelManager.LoadIngameScene("PreviewWindow");
     }
 
     public void SetPreviewImage(Texture2D image)

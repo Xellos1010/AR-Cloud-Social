@@ -11,7 +11,7 @@ public class TouchHandler : MonoBehaviour
 {
     #region PUBLIC_MEMBERS
 
-    public Transform m_AugmentationObject;
+    public Transform augmentationObject;
 
     [HideInInspector]
     public bool enableRotation;
@@ -36,8 +36,8 @@ public class TouchHandler : MonoBehaviour
 
 
     #region PRIVATE_MEMBERS
-    const float scaleRangeMin = 0.1f;
-    const float scaleRangeMax = 2.0f;
+    const float ScaleRangeMin = 0.1f;
+    const float ScaleRangeMax = 2.0f;
 
     Touch[] touches;
     static int lastTouchCount;
@@ -53,59 +53,59 @@ public class TouchHandler : MonoBehaviour
 
     void Start()
     {
-        cachedAugmentationScale = m_AugmentationObject.localScale.x;
-        cachedAugmentationRotation = m_AugmentationObject.localEulerAngles;
+        this.cachedAugmentationScale = this.augmentationObject.localScale.x;
+        this.cachedAugmentationRotation = this.augmentationObject.localEulerAngles;
     }
 
     void Update()
     {
-        touches = Input.touches;
+        this.touches = Input.touches;
 
         if (Input.touchCount == 2)
         {
-            float currentTouchDistance = Vector2.Distance(touches[0].position, touches[1].position);
-            float diff_y = touches[0].position.y - touches[1].position.y;
-            float diff_x = touches[0].position.x - touches[1].position.x;
+            float currentTouchDistance = Vector2.Distance(this.touches[0].position, this.touches[1].position);
+            float diff_y = this.touches[0].position.y - this.touches[1].position.y;
+            float diff_x = this.touches[0].position.x - this.touches[1].position.x;
             float currentTouchAngle = Mathf.Atan2(diff_y, diff_x) * Mathf.Rad2Deg;
 
-            if (isFirstFrameWithTwoTouches)
+            if (this.isFirstFrameWithTwoTouches)
             {
-                cachedTouchDistance = currentTouchDistance;
-                cachedTouchAngle = currentTouchAngle;
-                isFirstFrameWithTwoTouches = false;
+                this.cachedTouchDistance = currentTouchDistance;
+                this.cachedTouchAngle = currentTouchAngle;
+                this.isFirstFrameWithTwoTouches = false;
             }
 
-            float angleDelta = currentTouchAngle - cachedTouchAngle;
-            float scaleMultiplier = (currentTouchDistance / cachedTouchDistance);
-            float scaleAmount = cachedAugmentationScale * scaleMultiplier;
-            float scaleAmountClamped = Mathf.Clamp(scaleAmount, scaleRangeMin, scaleRangeMax);
+            float angleDelta = currentTouchAngle - this.cachedTouchAngle;
+            float scaleMultiplier = (currentTouchDistance / this.cachedTouchDistance);
+            float scaleAmount = this.cachedAugmentationScale * scaleMultiplier;
+            float scaleAmountClamped = Mathf.Clamp(scaleAmount, ScaleRangeMin, ScaleRangeMax);
 
-            if (enableRotation)
+            if (this.enableRotation)
             {
-                m_AugmentationObject.localEulerAngles = cachedAugmentationRotation - new Vector3(0, angleDelta * 3f, 0);
+                this.augmentationObject.localEulerAngles = this.cachedAugmentationRotation - new Vector3(0, angleDelta * 3f, 0);
             }
-            if (enableRotation && enablePinchScaling)
+            if (this.enableRotation && this.enablePinchScaling)
             {
                 // Optional Pinch Scaling can be enabled via Inspector for this Script Component
-                m_AugmentationObject.localScale = new Vector3(scaleAmountClamped, scaleAmountClamped, scaleAmountClamped);
+                this.augmentationObject.localScale = new Vector3(scaleAmountClamped, scaleAmountClamped, scaleAmountClamped);
             }
 
         }
         else if (Input.touchCount < 2)
         {
-            cachedAugmentationScale = m_AugmentationObject.localScale.x;
-            cachedAugmentationRotation = m_AugmentationObject.localEulerAngles;
-            isFirstFrameWithTwoTouches = true;
+            this.cachedAugmentationScale = this.augmentationObject.localScale.x;
+            this.cachedAugmentationRotation = this.augmentationObject.localEulerAngles;
+            this.isFirstFrameWithTwoTouches = true;
         }
         else if (Input.touchCount == 6)
         {
             // enable runtime testing of pinch scaling
-            enablePinchScaling = true;
+            this.enablePinchScaling = true;
         }
         else if (Input.touchCount == 5)
         {
             // disable runtime testing of pinch scaling
-            enablePinchScaling = false;
+            this.enablePinchScaling = false;
         }
     }
 

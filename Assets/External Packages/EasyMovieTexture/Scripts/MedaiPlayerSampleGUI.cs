@@ -123,7 +123,7 @@ public class MedaiPlayerSampleGUI : MonoBehaviour {
     public void Stop()
     {
         scrMedia.Stop();
-        InGameSceneManager.instance.LoadIngameScene("AugmentScene");
+        PanelManager.instance.LoadIngameScene("AugmentScene");
     }
 
     private void TogglePlayPause(bool playPause)

@@ -24,7 +24,7 @@ public class TakePictureGalleryScreenshot : MonoBehaviour
         //Gallery Grab Code
         if (!takingScreenshot)
         {
-            SceneManager.AlphaManagerCanvasGroup.alpha = 0;
+            StaticPanelManager.AlphaManagerCanvasGroup.alpha = 0;
             ToggleMenuBarAlpha(false);
             takingScreenshot = true;
             ScreenshotManager.SaveScreenshot("Augmented Target", "Augmented Targets", "jpeg");
@@ -42,10 +42,10 @@ public class TakePictureGalleryScreenshot : MonoBehaviour
         cropManager.SetCropTexture(image);
         ToggleUI(true);
         
-        Debug.Log(SceneManager.InGameScenes.ToString());
+        Debug.Log(StaticPanelManager.InGameScenes.ToString());
         //SceneManager.LoadIngameScene(CropManager.instance.gameObject.name);   
         takingScreenshot = false;    
-        SceneManager.LoadIngameScene(cropManager.gameObject.name);
+        StaticPanelManager.LoadIngameScene(cropManager.gameObject.name);
     }    
     
     string pathImageSaved;
@@ -57,14 +57,15 @@ public class TakePictureGalleryScreenshot : MonoBehaviour
     void ToggleUI(bool onOff)
     {
         if (onOff)
-            SceneManager.AlphaManagerCanvasGroup.alpha = 1;
+            StaticPanelManager.AlphaManagerCanvasGroup.alpha = 1;
         else
-            SceneManager.AlphaManagerCanvasGroup.alpha = 0;
+            StaticPanelManager.AlphaManagerCanvasGroup.alpha = 0;
         ToggleMenuBarAlpha(onOff);
     }
 
     void ToggleMenuBarAlpha(bool onOff)
     {
+        MenuBarStateManager.SetAlphaTo(onOff ? 1 : 0);
         try
         {
             GameObject[] SceneObjects = UnityEngine.SceneManagement.SceneManager.GetSceneByName("Main").GetRootGameObjects();

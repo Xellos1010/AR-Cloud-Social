@@ -10,7 +10,7 @@ public class instructions : MonoBehaviour
     public int currentSlide = 0;
     public float sensitivity = 0.10f;
     float prevTouchTime = 0f;
-    public SceneObject sceneToLoadOnComplete;
+    public Panel sceneToLoadOnComplete;
     public bool touchActive = true;
     public Vector2 initialPosition;
 
@@ -42,7 +42,7 @@ public class instructions : MonoBehaviour
 
     public void LoadNextScene()
     {
-        SceneManager.LoadIngameScene(sceneToLoadOnComplete);
+        StaticPanelManager.LoadIngameScene(sceneToLoadOnComplete);
     }
 
     public void CheckToggleButtonsLengthMatchSlides()

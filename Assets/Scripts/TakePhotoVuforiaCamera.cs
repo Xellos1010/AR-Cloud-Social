@@ -3,7 +3,7 @@ using Vuforia;
 
 public class TakePhotoVuforiaCamera : MonoBehaviour, ITrackableEventHandler
 {
-    private Image.PIXEL_FORMAT m_PixelFormat = Image.PIXEL_FORMAT.RGBA8888;//Image.PIXEL_FORMAT.RGB888;
+    private PIXEL_FORMAT m_PixelFormat = PIXEL_FORMAT.RGBA8888;//Image.PIXEL_FORMAT.RGB888;
     private bool m_RegisteredFormat = false;
     private bool m_LogInfo = true;
     private bool paused = false;
@@ -74,7 +74,7 @@ public class TakePhotoVuforiaCamera : MonoBehaviour, ITrackableEventHandler
             tex.Apply();
 
             CropManager.instance.SetCropTexture(tex);
-            SceneManager.LoadIngameScene("Crop Window"); //TODO Abstract to find scene names crop - set to static to resolve bug which said referenced object not available
+            StaticPanelManager.LoadIngameScene("Crop Window"); //TODO Abstract to find scene names crop - set to static to resolve bug which said referenced object not available
             //byte[] bytes = tex.EncodeToPNG();
             //Destroy(tex);
 

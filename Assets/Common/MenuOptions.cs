@@ -1,16 +1,16 @@
 /*===============================================================================
 Copyright (c) 2015-2018 PTC Inc. All Rights Reserved.
- 
+
 Copyright (c) 2015 Qualcomm Connected Experiences, Inc. All Rights Reserved.
- 
-Vuforia is a trademark of PTC Inc., registered in the United States and other 
+
+Vuforia is a trademark of PTC Inc., registered in the United States and other
 countries.
 ===============================================================================*/
 using UnityEngine;
 using UnityEngine.UI;
 using Vuforia;
 
-using System.Collections;
+using System.Collections.Generic;
 
 public class MenuOptions : MonoBehaviour
 {
@@ -91,14 +91,27 @@ public class MenuOptions : MonoBehaviour
 
         if (objTracker != null && objTracker.IsActive)
         {
+            Debug.Log("Stopping the ObjectTracker...");
             objTracker.Stop();
-            
+
+            List<DataSet> tempDataSetList = new List<DataSet>();
+
+            // Create a temporary list of active datasets to prevent
+            // InvalidOperationException caused by modifying the active
+            // dataset list while iterating through it
             foreach (DataSet dataset in objTracker.GetDataSets())
+            {
+                tempDataSetList.Add(dataset);
+            }
+
+            // Reset active datasets
+            foreach (DataSet dataset in tempDataSetList)
             {
                 objTracker.DeactivateDataSet(dataset);
                 objTracker.ActivateDataSet(dataset);
             }
 
+            Debug.Log("Restarting the ObjectTracker...");
             objTracker.Start();
         }
 
@@ -133,6 +146,15 @@ public class MenuOptions : MonoBehaviour
                 IsDisplayed = false;
             }
         }
+    }
+
+    public void CycleGuideView()
+    {
+        var modelTarget = FindObjectOfType<ModelTargetBehaviour>().ModelTarget;
+
+        int guideViewIndexToActivate =
+            (modelTarget.GetActiveGuideViewIndex() + 1) % modelTarget.GetNumGuideViews();
+        modelTarget.SetActiveGuideViewIndex(guideViewIndexToActivate);
     }
 
     #endregion //PUBLIC_METHODS

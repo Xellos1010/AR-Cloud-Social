@@ -9,7 +9,6 @@ using UnityEngine;
 
 public class NavigationHandler : MonoBehaviour
 {
-
     #region PUBLIC_MEMBERS
     public string m_BackButtonNavigation = "[Name of Scene To Load]";
     #endregion // PUBLIC_MEMBERS

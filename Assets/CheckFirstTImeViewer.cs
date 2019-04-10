@@ -10,9 +10,4 @@ public class CheckFirstTImeViewer : MonoBehaviour {
         if (!PlayerPrefs.HasKey("ViewInstructions"))
             PlayerPrefs.SetString("ViewInstructions", "false");
     }
-	
-	// Update is called once per frame
-	void Update () {
-	
-	}
 }

@@ -5,6 +5,6 @@ public class UploadImageTargetManager : GameManager {
 
     public void RetakePhoto()
     {
-        SceneManager.LoadIngameScene("TakePictureMode");
+        StaticPanelManager.LoadIngameScene("TakePictureMode");
     }   
 }

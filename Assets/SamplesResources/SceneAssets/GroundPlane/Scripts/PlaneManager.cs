@@ -1,11 +1,10 @@
 /*==============================================================================
-Copyright (c) 2017-2018 PTC Inc. All Rights Reserved.
+Copyright (c) 2017-2019 PTC Inc. All Rights Reserved.
 
 Vuforia is a trademark of PTC Inc., registered in the United States and other
 countries.
 ==============================================================================*/
-
-using System.Collections.Generic;
+using System.Timers;
 using UnityEngine;
 using Vuforia;
 
@@ -19,43 +18,84 @@ public class PlaneManager : MonoBehaviour
     }
 
     #region PUBLIC_MEMBERS
-    public PlaneFinderBehaviour m_PlaneFinder;
-    public MidAirPositionerBehaviour m_MidAirPositioner;
-
-    [Header("Plane, Mid-Air, & Placement Augmentations")]
-    public GameObject m_PlaneAugmentation;
-    public GameObject m_MidAirAugmentation;
-    public GameObject m_PlacementAugmentation;
-    public static bool GroundPlaneHitReceived, AstronautIsPlaced;
-    public static PlaneMode planeMode = PlaneMode.PLACEMENT;
-
-    public static bool AnchorExists
-    {
-        get { return anchorExists; }
-        private set { anchorExists = value; }
-    }
+    public static PlaneMode CurrentPlaneMode = PlaneMode.PLACEMENT;
+    public static bool GroundPlaneHitReceived { get; private set; }
     #endregion // PUBLIC_MEMBERS
 
 
     #region PRIVATE_MEMBERS
-    const string unsupportedDeviceTitle = "Unsupported Device";
-    const string unsupportedDeviceBody =
+    [SerializeField] PlaneFinderBehaviour planeFinder = null;
+    [SerializeField] MidAirPositionerBehaviour midAirPositioner = null;
+
+    [Header("Plane, Mid-Air, & Placement Augmentations")]
+    [SerializeField] GameObject planeAugmentation = null;
+    [SerializeField] GameObject midAirAugmentation = null;
+    [SerializeField] GameObject placementAugmentation = null;
+
+    const string UnsupportedDeviceTitle = "Unsupported Device";
+    const string UnsupportedDeviceBody =
         "This device has failed to start the Positional Device Tracker. " +
         "Please check the list of supported Ground Plane devices on our site: " +
         "\n\nhttps://library.vuforia.com/articles/Solution/ground-plane-supported-devices.html";
 
-    StateManager m_StateManager;
-    SmartTerrain m_SmartTerrain;
-    PositionalDeviceTracker m_PositionalDeviceTracker;
-    ContentPositioningBehaviour m_ContentPositioningBehaviour;
-    TouchHandler m_TouchHandler;
-    ProductPlacement m_ProductPlacement;
-    GroundPlaneUI m_GroundPlaneUI;
-    AnchorBehaviour m_PlaneAnchor, m_MidAirAnchor, m_PlacementAnchor;
-    int AutomaticHitTestFrameCount;
-    int m_AnchorCounter;
-    bool uiHasBeenInitialized;
-    static bool anchorExists; // backs public AnchorExists property
+    StateManager stateManager;
+    SmartTerrain smartTerrain;
+    PositionalDeviceTracker positionalDeviceTracker;
+    ContentPositioningBehaviour contentPositioningBehaviour;
+    TouchHandler touchHandler;
+    ProductPlacement productPlacement;
+    GroundPlaneUI groundPlaneUI;
+    AnchorBehaviour planeAnchor, midAirAnchor, placementAnchor;
+    int automaticHitTestFrameCount;
+    static TrackableBehaviour.Status StatusCached = TrackableBehaviour.Status.NO_POSE;
+    static TrackableBehaviour.StatusInfo StatusInfoCached = TrackableBehaviour.StatusInfo.UNKNOWN;
+
+    // More Strict: Property returns true when Status is Tracked and StatusInfo is Normal.
+    public static bool TrackingStatusIsTrackedAndNormal
+    {
+        get
+        {
+            return
+                (StatusCached == TrackableBehaviour.Status.TRACKED ||
+                 StatusCached == TrackableBehaviour.Status.EXTENDED_TRACKED) &&
+                StatusInfoCached == TrackableBehaviour.StatusInfo.NORMAL;
+        }
+    }
+
+    // Less Strict: Property returns true when Status is Tracked/Normal or Limited/Unknown.
+    public static bool TrackingStatusIsTrackedOrLimited
+    {
+        get
+        {
+            return
+                ((StatusCached == TrackableBehaviour.Status.TRACKED ||
+                 StatusCached == TrackableBehaviour.Status.EXTENDED_TRACKED) &&
+                 StatusInfoCached == TrackableBehaviour.StatusInfo.NORMAL) ||
+                (StatusCached == TrackableBehaviour.Status.LIMITED &&
+                 StatusInfoCached == TrackableBehaviour.StatusInfo.UNKNOWN);
+        }
+    }
+
+    bool SurfaceIndicatorVisibilityConditionsMet
+    {
+        // The Surface Indicator should only be visible if the following conditions
+        // are true:
+        // 1. Tracking Status is Tracked or Limited (sufficient for Hit Test Anchors
+        // 2. Ground Plane Hit was received for this frame
+        // 3. The Plane Mode is equal to GROUND or PLACEMENT(see #4)
+        // 4. If the Plane Mode is equal to PLACEMENT and *there's no active touches
+        get
+        {
+            return
+                (TrackingStatusIsTrackedOrLimited &&
+                 GroundPlaneHitReceived &&
+                 (CurrentPlaneMode == PlaneMode.GROUND ||
+                    (CurrentPlaneMode == PlaneMode.PLACEMENT && Input.touchCount == 0)));
+        }
+    }
+
+    Timer timer;
+    bool timerFinished;
     #endregion // PRIVATE_MEMBERS
 
 
@@ -68,33 +108,51 @@ public class PlaneManager : MonoBehaviour
         DeviceTrackerARController.Instance.RegisterTrackerStartedCallback(OnTrackerStarted);
         DeviceTrackerARController.Instance.RegisterDevicePoseStatusChangedCallback(OnDevicePoseStatusChanged);
 
-        m_PlaneFinder.HitTestMode = HitTestMode.AUTOMATIC;
+        this.planeFinder.HitTestMode = HitTestMode.AUTOMATIC;
 
-        m_ProductPlacement = FindObjectOfType<ProductPlacement>();
-        m_TouchHandler = FindObjectOfType<TouchHandler>();
-        m_GroundPlaneUI = FindObjectOfType<GroundPlaneUI>();
+        this.productPlacement = FindObjectOfType<ProductPlacement>();
+        this.touchHandler = FindObjectOfType<TouchHandler>();
+        this.groundPlaneUI = FindObjectOfType<GroundPlaneUI>();
 
-        m_PlaneAnchor = m_PlaneAugmentation.GetComponentInParent<AnchorBehaviour>();
-        m_MidAirAnchor = m_MidAirAugmentation.GetComponentInParent<AnchorBehaviour>();
-        m_PlacementAnchor = m_PlacementAugmentation.GetComponentInParent<AnchorBehaviour>();
+        this.planeAnchor = this.planeAugmentation.GetComponentInParent<AnchorBehaviour>();
+        this.midAirAnchor = this.midAirAugmentation.GetComponentInParent<AnchorBehaviour>();
+        this.placementAnchor = this.placementAugmentation.GetComponentInParent<AnchorBehaviour>();
 
-        UtilityHelper.EnableRendererColliderCanvas(m_PlaneAugmentation, false);
-        UtilityHelper.EnableRendererColliderCanvas(m_MidAirAugmentation, false);
-        UtilityHelper.EnableRendererColliderCanvas(m_PlacementAugmentation, false);
+        UtilityHelper.EnableRendererColliderCanvas(this.planeAugmentation, false);
+        UtilityHelper.EnableRendererColliderCanvas(this.midAirAugmentation, false);
+        UtilityHelper.EnableRendererColliderCanvas(this.placementAugmentation, false);
+
+        // Setup a timer to restart the DeviceTracker if tracking does not receive
+        // status change from StatusInfo.RELOCALIZATION after 10 seconds.
+        this.timer = new Timer(10000);
+        this.timer.Elapsed += TimerFinished;
+        this.timer.AutoReset = false;
     }
 
     void Update()
     {
-        if (!VuforiaRuntimeUtilities.IsPlayMode() && !AnchorExists)
+        // The timer runs on a separate thread and we need to ResetTrackers on the main thread.
+        if (this.timerFinished)
         {
-            AnchorExists = DoAnchorsExist();
+            ResetTrackers();
+            this.timerFinished = false;
         }
+    }
 
-        GroundPlaneHitReceived = (AutomaticHitTestFrameCount == Time.frameCount);
+    void LateUpdate()
+    {
+        // The AutomaticHitTestFrameCount is assigned the Time.frameCount in the
+        // HandleAutomaticHitTest() callback method. When the LateUpdate() method
+        // is then called later in the same frame, it sets GroundPlaneHitReceived
+        // to true if the frame number matches. For any code that needs to check
+        // the current frame value of GroundPlaneHitReceived, it should do so
+        // in a LateUpdate() method.
+        GroundPlaneHitReceived = (this.automaticHitTestFrameCount == Time.frameCount);
 
-        SetSurfaceIndicatorVisible(
-            GroundPlaneHitReceived &&
-            (planeMode == PlaneMode.GROUND || (planeMode == PlaneMode.PLACEMENT && Input.touchCount == 0)));
+        // Surface Indicator visibility conditions rely upon GroundPlaneHitReceived,
+        // so we will move this method into LateUpdate() to ensure that it is called
+        // after GroundPlaneHitReceived has been updated in Update().
+        SetSurfaceIndicatorVisible(SurfaceIndicatorVisibilityConditionsMet);
     }
 
     void OnDestroy()
@@ -114,18 +172,12 @@ public class PlaneManager : MonoBehaviour
 
     public void HandleAutomaticHitTest(HitTestResult result)
     {
-        AutomaticHitTestFrameCount = Time.frameCount;
+        this.automaticHitTestFrameCount = Time.frameCount;
 
-        if (!uiHasBeenInitialized)
+        if (CurrentPlaneMode == PlaneMode.PLACEMENT && !productPlacement.IsPlaced)
         {
-            uiHasBeenInitialized = m_GroundPlaneUI.InitializeUI();
-        }
-
-        if (planeMode == PlaneMode.PLACEMENT && !m_ProductPlacement.IsPlaced)
-        {
-            SetSurfaceIndicatorVisible(false);
-            m_ProductPlacement.SetProductAnchor(null);
-            m_PlacementAugmentation.PositionAt(result.Position);
+            this.productPlacement.SetProductAnchor(null);
+            this.placementAugmentation.PositionAt(result.Position);
         }
     }
 
@@ -137,46 +189,71 @@ public class PlaneManager : MonoBehaviour
             return;
         }
 
-        if (!m_GroundPlaneUI.IsCanvasButtonPressed())
+        if (!groundPlaneUI.IsCanvasButtonPressed())
         {
             Debug.Log("HandleInteractiveHitTest() called.");
 
             // If the PlaneFinderBehaviour's Mode is Automatic, then the Interactive HitTestResult will be centered.
 
             // PlaneMode.Ground and PlaneMode.Placement both use PlaneFinder's ContentPositioningBehaviour
-            m_ContentPositioningBehaviour = m_PlaneFinder.GetComponent<ContentPositioningBehaviour>();
-            m_ContentPositioningBehaviour.DuplicateStage = false;
+            this.contentPositioningBehaviour = this.planeFinder.GetComponent<ContentPositioningBehaviour>();
+            this.contentPositioningBehaviour.DuplicateStage = false;
 
             // Place object based on Ground Plane mode
-            switch (planeMode)
+            switch (CurrentPlaneMode)
             {
                 case PlaneMode.GROUND:
 
-                    m_ContentPositioningBehaviour.AnchorStage = m_PlaneAnchor;
-                    m_ContentPositioningBehaviour.PositionContentAtPlaneAnchor(result);
-                    UtilityHelper.EnableRendererColliderCanvas(m_PlaneAugmentation, true);
+                    // With each tap, the Astronaut is moved to the position of the
+                    // newly created anchor. Before we set any anchor, we first want
+                    // to verify that the Status=TRACKED/EXTENDED_TRACKED and StatusInfo=NORMAL.
+                    if (TrackingStatusIsTrackedOrLimited)
+                    {
+                        this.contentPositioningBehaviour.AnchorStage = this.planeAnchor;
+                        this.contentPositioningBehaviour.PositionContentAtPlaneAnchor(result);
+                        UtilityHelper.EnableRendererColliderCanvas(this.planeAugmentation, true);
 
-                    // Astronaut should rotate toward camera with each placement
-                    m_PlaneAugmentation.transform.localPosition = Vector3.zero;
-                    UtilityHelper.RotateTowardCamera(m_PlaneAugmentation);
-
-                    AstronautIsPlaced = true;
+                        // Astronaut should rotate toward camera with each placement
+                        this.planeAugmentation.transform.localPosition = Vector3.zero;
+                        UtilityHelper.RotateTowardCamera(this.planeAugmentation);
+                    }
 
                     break;
 
                 case PlaneMode.PLACEMENT:
 
-                    if (!m_ProductPlacement.IsPlaced || TouchHandler.DoubleTap)
+                    // With initial tap or a double-tap, a new anchor is created,
+                    // so we first check that Status=TRACKED/EXTENDED_TRACKED and StatusInfo=NORMAL
+                    // before proceeding.
+                    if (TrackingStatusIsTrackedOrLimited)
                     {
-                        m_ContentPositioningBehaviour.AnchorStage = m_PlacementAnchor;
-                        m_ContentPositioningBehaviour.PositionContentAtPlaneAnchor(result);
-                        UtilityHelper.EnableRendererColliderCanvas(m_PlacementAugmentation, true);
-                    }
+                        // If the product is yet to be placed when a tap occurs,
+                        // we assign our stage content, set an anchor and enable the
+                        // content. If a double-tap occurs, for instance when the content
+                        // has already been placed and positioned, then a new anchor
+                        // is placed and the stage is centered to it, but the content
+                        // retains its offset in relation to the stage.
+                        if (!this.productPlacement.IsPlaced || TouchHandler.DoubleTap)
+                        {
+                            this.contentPositioningBehaviour.AnchorStage = this.placementAnchor;
+                            this.contentPositioningBehaviour.PositionContentAtPlaneAnchor(result);
+                            UtilityHelper.EnableRendererColliderCanvas(placementAugmentation, true);
+                        }
 
-                    if (!m_ProductPlacement.IsPlaced)
-                    {
-                        m_ProductPlacement.SetProductAnchor(m_PlacementAnchor.transform);
-                        m_TouchHandler.enableRotation = true;
+                        // Immediately following the steps above, we again confirm that the
+                        // IsPlaced flag has not been set and call SetProductAnchor to
+                        // reset the transform and rotation of the content in relation to the
+                        // stage collision plane. This only happens when setting the first
+                        // anchor or when reseting the scene. When double-tapping to simply
+                        // create a new anchor, the content retains its positional offset in
+                        // relation to the stage collision plane as well as its rotation.
+                        // The SetProductAnchor() will set the IsPlaced flag to true if the
+                        // transform argument is valid and to false if it is null.
+                        if (!this.productPlacement.IsPlaced)
+                        {
+                            this.productPlacement.SetProductAnchor(this.placementAnchor.transform);
+                            this.touchHandler.enableRotation = true;
+                        }
                     }
 
                     break;
@@ -186,16 +263,22 @@ public class PlaneManager : MonoBehaviour
 
     public void PlaceObjectInMidAir(Transform midAirTransform)
     {
-        if (planeMode == PlaneMode.MIDAIR)
+        if (CurrentPlaneMode == PlaneMode.MIDAIR)
         {
             Debug.Log("PlaceObjectInMidAir() called.");
 
-            m_ContentPositioningBehaviour.AnchorStage = m_MidAirAnchor;
-            m_ContentPositioningBehaviour.PositionContentAtMidAirAnchor(midAirTransform);
-            UtilityHelper.EnableRendererColliderCanvas(m_MidAirAugmentation, true);
+            // With each tap, the Drone is moved to the position of the
+            // newly created anchor. Before we set any anchor, we first want
+            // to verify that the Status=TRACKED/EXTENDED_TRACKED and StatusInfo=NORMAL.
+            if (TrackingStatusIsTrackedAndNormal)
+            {
+                this.contentPositioningBehaviour.AnchorStage = this.midAirAnchor;
+                this.contentPositioningBehaviour.PositionContentAtMidAirAnchor(midAirTransform);
+                UtilityHelper.EnableRendererColliderCanvas(this.midAirAugmentation, true);
 
-            m_MidAirAugmentation.transform.localPosition = Vector3.zero;
-            UtilityHelper.RotateTowardCamera(m_MidAirAugmentation);
+                this.midAirAugmentation.transform.localPosition = Vector3.zero;
+                UtilityHelper.RotateTowardCamera(this.midAirAugmentation);
+            }
         }
     }
 
@@ -208,11 +291,7 @@ public class PlaneManager : MonoBehaviour
     {
         if (active)
         {
-            planeMode = PlaneMode.GROUND;
-            m_GroundPlaneUI.UpdateTitle();
-            m_PlaneFinder.enabled = true;
-            m_MidAirPositioner.enabled = false;
-            m_TouchHandler.enableRotation = false;
+            SetMode(PlaneMode.GROUND);
         }
     }
 
@@ -220,11 +299,7 @@ public class PlaneManager : MonoBehaviour
     {
         if (active)
         {
-            planeMode = PlaneMode.MIDAIR;
-            m_GroundPlaneUI.UpdateTitle();
-            m_PlaneFinder.enabled = false;
-            m_MidAirPositioner.enabled = true;
-            m_TouchHandler.enableRotation = false;
+            SetMode(PlaneMode.MIDAIR);
         }
     }
 
@@ -232,48 +307,51 @@ public class PlaneManager : MonoBehaviour
     {
         if (active)
         {
-            planeMode = PlaneMode.PLACEMENT;
-            m_GroundPlaneUI.UpdateTitle();
-            m_PlaneFinder.enabled = true;
-            m_MidAirPositioner.enabled = false;
-            m_TouchHandler.enableRotation = m_PlacementAugmentation.activeInHierarchy;
+            SetMode(PlaneMode.PLACEMENT);
         }
     }
 
+    /// <summary>
+    /// This method resets the augmentations and scene elements.
+    /// It is called by the UI Reset Button and also by OnVuforiaPaused() callback.
+    /// </summary>
     public void ResetScene()
     {
         Debug.Log("ResetScene() called.");
 
         // reset augmentations
-        m_PlaneAugmentation.transform.position = Vector3.zero;
-        m_PlaneAugmentation.transform.localEulerAngles = Vector3.zero;
-        UtilityHelper.EnableRendererColliderCanvas(m_PlaneAugmentation, false);
+        this.planeAugmentation.transform.position = Vector3.zero;
+        this.planeAugmentation.transform.localEulerAngles = Vector3.zero;
+        UtilityHelper.EnableRendererColliderCanvas(this.planeAugmentation, false);
 
-        m_MidAirAugmentation.transform.position = Vector3.zero;
-        m_MidAirAugmentation.transform.localEulerAngles = Vector3.zero;
-        UtilityHelper.EnableRendererColliderCanvas(m_MidAirAugmentation, false);
+        this.midAirAugmentation.transform.position = Vector3.zero;
+        this.midAirAugmentation.transform.localEulerAngles = Vector3.zero;
+        UtilityHelper.EnableRendererColliderCanvas(this.midAirAugmentation, false);
 
-        m_ProductPlacement.Reset();
-        UtilityHelper.EnableRendererColliderCanvas(m_PlacementAugmentation, false);
+        this.productPlacement.Reset();
+        UtilityHelper.EnableRendererColliderCanvas(this.placementAugmentation, false);
 
-        DeleteAnchors();
-        m_ProductPlacement.SetProductAnchor(null);
-        AstronautIsPlaced = false;
-        m_GroundPlaneUI.Reset();
-        m_TouchHandler.enableRotation = false;
+        this.productPlacement.SetProductAnchor(null);
+        this.groundPlaneUI.Reset();
+        this.touchHandler.enableRotation = false;
     }
 
+    /// <summary>
+    /// This method stops and restarts the PositionalDeviceTracker.
+    /// It is called by the UI Reset Button and when RELOCALIZATION status has
+    /// not changed for 10 seconds.
+    /// </summary>
     public void ResetTrackers()
     {
         Debug.Log("ResetTrackers() called.");
 
-        m_SmartTerrain = TrackerManager.Instance.GetTracker<SmartTerrain>();
-        m_PositionalDeviceTracker = TrackerManager.Instance.GetTracker<PositionalDeviceTracker>();
+        this.smartTerrain = TrackerManager.Instance.GetTracker<SmartTerrain>();
+        this.positionalDeviceTracker = TrackerManager.Instance.GetTracker<PositionalDeviceTracker>();
 
         // Stop and restart trackers
-        m_SmartTerrain.Stop(); // stop SmartTerrain tracker before PositionalDeviceTracker
-        m_PositionalDeviceTracker.Reset();
-        m_SmartTerrain.Start(); // start SmartTerrain tracker after PositionalDeviceTracker
+        this.smartTerrain.Stop(); // stop SmartTerrain tracker before PositionalDeviceTracker
+        this.positionalDeviceTracker.Reset();
+        this.smartTerrain.Start(); // start SmartTerrain tracker after PositionalDeviceTracker
     }
 
     #endregion // PUBLIC_BUTTON_METHODS
@@ -281,18 +359,29 @@ public class PlaneManager : MonoBehaviour
 
     #region PRIVATE_METHODS
 
-    void DeleteAnchors()
+    /// <summary>
+    /// This private method is called by the UI Button handler methods.
+    /// </summary>
+    /// <param name="mode">PlaneMode</param>
+    void SetMode(PlaneMode mode)
     {
-        m_PlaneAnchor.UnConfigureAnchor();
-        m_MidAirAnchor.UnConfigureAnchor();
-        m_PlacementAnchor.UnConfigureAnchor();
-        AnchorExists = DoAnchorsExist();
+        CurrentPlaneMode = mode;
+        this.groundPlaneUI.UpdateTitle();
+        this.planeFinder.enabled = (mode == PlaneMode.GROUND || mode == PlaneMode.PLACEMENT);
+        this.midAirPositioner.enabled = (mode == PlaneMode.MIDAIR);
+        this.touchHandler.enableRotation = (mode == PlaneMode.PLACEMENT) &&
+            this.placementAugmentation.activeInHierarchy;
     }
 
+    /// <summary>
+    /// This method can be used to set the Ground Plane surface indicator visibility.
+    /// This sample will display it when the Status=TRACKED and StatusInfo=Normal.
+    /// </summary>
+    /// <param name="isVisible">bool</param>
     void SetSurfaceIndicatorVisible(bool isVisible)
     {
-        Renderer[] renderers = m_PlaneFinder.PlaneIndicator.GetComponentsInChildren<Renderer>(true);
-        Canvas[] canvas = m_PlaneFinder.PlaneIndicator.GetComponentsInChildren<Canvas>(true);
+        Renderer[] renderers = this.planeFinder.PlaneIndicator.GetComponentsInChildren<Renderer>(true);
+        Canvas[] canvas = this.planeFinder.PlaneIndicator.GetComponentsInChildren<Canvas>(true);
 
         foreach (Canvas c in canvas)
             c.enabled = isVisible;
@@ -301,23 +390,16 @@ public class PlaneManager : MonoBehaviour
             r.enabled = isVisible;
     }
 
-    bool DoAnchorsExist()
+    /// <summary>
+    /// This is a C# delegate method for the Timer:
+    /// ElapsedEventHandler(object sender, ElapsedEventArgs e)
+    /// </summary>
+    /// <param name="source">System.Object</param>
+    /// <param name="e">ElapsedEventArgs</param>
+    void TimerFinished(System.Object source, ElapsedEventArgs e)
     {
-        if (m_StateManager != null)
-        {
-            IEnumerable<TrackableBehaviour> trackableBehaviours = m_StateManager.GetActiveTrackableBehaviours();
-
-            foreach (TrackableBehaviour behaviour in trackableBehaviours)
-            {
-                if (behaviour is AnchorBehaviour)
-                {
-                    return true;
-                }
-            }
-        }
-        return false;
+        this.timerFinished = true;
     }
-
     #endregion // PRIVATE_METHODS
 
 
@@ -327,27 +409,27 @@ public class PlaneManager : MonoBehaviour
     {
         Debug.Log("OnVuforiaStarted() called.");
 
-        m_StateManager = TrackerManager.Instance.GetStateManager();
+        stateManager = TrackerManager.Instance.GetStateManager();
 
         // Check trackers to see if started and start if necessary
-        m_PositionalDeviceTracker = TrackerManager.Instance.GetTracker<PositionalDeviceTracker>();
-        m_SmartTerrain = TrackerManager.Instance.GetTracker<SmartTerrain>();
+        this.positionalDeviceTracker = TrackerManager.Instance.GetTracker<PositionalDeviceTracker>();
+        this.smartTerrain = TrackerManager.Instance.GetTracker<SmartTerrain>();
 
-        if (m_PositionalDeviceTracker != null && m_SmartTerrain != null)
+        if (this.positionalDeviceTracker != null && this.smartTerrain != null)
         {
-            if (!m_PositionalDeviceTracker.IsActive)
-                m_PositionalDeviceTracker.Start();
-            if (m_PositionalDeviceTracker.IsActive && !m_SmartTerrain.IsActive)
-                m_SmartTerrain.Start();
+            if (!this.positionalDeviceTracker.IsActive)
+                this.positionalDeviceTracker.Start();
+            if (this.positionalDeviceTracker.IsActive && !this.smartTerrain.IsActive)
+                this.smartTerrain.Start();
         }
         else
         {
-            if (m_PositionalDeviceTracker == null)
+            if (this.positionalDeviceTracker == null)
                 Debug.Log("PositionalDeviceTracker returned null. GroundPlane not supported on this device.");
-            if (m_SmartTerrain == null)
+            if (this.smartTerrain == null)
                 Debug.Log("SmartTerrain returned null. GroundPlane not supported on this device.");
 
-            MessageBox.DisplayMessageBox(unsupportedDeviceTitle, unsupportedDeviceBody, false, null);
+            MessageBox.DisplayMessageBox(UnsupportedDeviceTitle, UnsupportedDeviceBody, false, null);
         }
     }
 
@@ -366,24 +448,59 @@ public class PlaneManager : MonoBehaviour
 
     void OnTrackerStarted()
     {
-        Debug.Log("OnTrackerStarted() called.");
+        Debug.Log("PlaneManager.OnTrackerStarted() called.");
 
-        m_PositionalDeviceTracker = TrackerManager.Instance.GetTracker<PositionalDeviceTracker>();
-        m_SmartTerrain = TrackerManager.Instance.GetTracker<SmartTerrain>();
+        this.positionalDeviceTracker = TrackerManager.Instance.GetTracker<PositionalDeviceTracker>();
+        this.smartTerrain = TrackerManager.Instance.GetTracker<SmartTerrain>();
 
-        if (m_PositionalDeviceTracker != null)
+        if (this.positionalDeviceTracker != null && this.smartTerrain != null)
         {
-            if (!m_PositionalDeviceTracker.IsActive)
-                m_PositionalDeviceTracker.Start();
+            if (!this.positionalDeviceTracker.IsActive)
+                this.positionalDeviceTracker.Start();
 
-            Debug.Log("PositionalDeviceTracker is Active?: " + m_PositionalDeviceTracker.IsActive +
-                      "\nSmartTerrain Tracker is Active?: " + m_SmartTerrain.IsActive);
+            if (!this.smartTerrain.IsActive)
+                this.smartTerrain.Start();
+
+            Debug.Log("PositionalDeviceTracker is Active?: " + this.positionalDeviceTracker.IsActive +
+                      "\nSmartTerrain Tracker is Active?: " + this.smartTerrain.IsActive);
         }
     }
 
     void OnDevicePoseStatusChanged(TrackableBehaviour.Status status, TrackableBehaviour.StatusInfo statusInfo)
     {
-        Debug.Log("OnDevicePoseStatusChanged(" + status + ", " + statusInfo + ")");
+        Debug.Log("PlaneManager.OnDevicePoseStatusChanged(" + status + ", " + statusInfo + ")");
+
+        StatusCached = status;
+        StatusInfoCached = statusInfo;
+
+        // If the timer is running and the status is no longer Relocalizing, then stop the timer
+        if (statusInfo != TrackableBehaviour.StatusInfo.RELOCALIZING && this.timer.Enabled)
+        {
+            this.timer.Stop();
+        }
+
+        switch (statusInfo)
+        {
+            case TrackableBehaviour.StatusInfo.NORMAL:
+                break;
+            case TrackableBehaviour.StatusInfo.UNKNOWN:
+                break;
+            case TrackableBehaviour.StatusInfo.INITIALIZING:
+                break;
+            case TrackableBehaviour.StatusInfo.EXCESSIVE_MOTION:
+                break;
+            case TrackableBehaviour.StatusInfo.INSUFFICIENT_FEATURES:
+                break;
+            case TrackableBehaviour.StatusInfo.RELOCALIZING:
+                // Start a 10 second timer to Reset Device Tracker
+                if (!this.timer.Enabled)
+                {
+                    this.timer.Start();
+                }
+                break;
+            default:
+                break;
+        }
     }
 
     #endregion // DEVICE_TRACKER_CALLBACK_METHODS

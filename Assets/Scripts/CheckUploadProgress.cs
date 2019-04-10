@@ -5,7 +5,7 @@ using System.Collections.Generic;
 public class CheckUploadProgress : MonoBehaviour {
 
     public string targetID;
-    MenuBarSceneLoader sceneLoaderToCall;
+    MenuBarStateManager sceneLoaderToCall;
     public string mainURL = "http://www.augmentourworld.com/Vuphoria/php/main.php";
 
     void Awake()
@@ -18,7 +18,7 @@ public class CheckUploadProgress : MonoBehaviour {
         //FacebookShare.initialized += facebookInitialized;
     }
 
-    public CheckUploadProgress(string targetIDToCheck, MenuBarSceneLoader loader)
+    public CheckUploadProgress(string targetIDToCheck, MenuBarStateManager loader)
     {
         targetID = targetIDToCheck;
         sceneLoaderToCall = loader;
@@ -30,7 +30,7 @@ public class CheckUploadProgress : MonoBehaviour {
         StartCoroutine(GetTargetIDInfoInitialize());
     }
 
-    public void GetCheckTargetIDInfo(string targetIDToCheck, MenuBarSceneLoader loader, string url)
+    public void GetCheckTargetIDInfo(string targetIDToCheck, MenuBarStateManager loader, string url)
     {
         mainURL = url;
         targetID = targetIDToCheck;
@@ -117,20 +117,5 @@ public class CheckUploadProgress : MonoBehaviour {
         returnValue.AddRange(IDTargetsRawData.Split('|'));
         return returnValue;
     }
-
-    public IEnumerator PostToFacebook(string imageURL)
-    {
-        if (!Facebook.Unity.FB.IsInitialized)
-        {
-            FacebookShare.FBInit();
-            //yield return new WaitUntil(FacebookShare.initialized);
-        }
-        if (!Facebook.Unity.FB.IsLoggedIn)
-        {
-            FacebookShare.LogIn();
-            //yield return new WaitUntil(FacebookShare.loggedIn);
-        }
-        yield return new WaitForSeconds(10);
-        FacebookShare.Share(imageURL);
-    }    
+    
 }

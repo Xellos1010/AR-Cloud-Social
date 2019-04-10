@@ -39,7 +39,7 @@ public class TrackableSettingsEditor : Editor
         
         // draw a dropdown to select between the two most common fusion provider options
         int selectedIndex = 0; // default == FusionProviderType.ALL
-                    
+                    /*
         if (m_FusionProviderType.intValue == (int)FusionProviderType.OPTIMIZE_IMAGE_TARGETS_AND_VUMARKS)
             selectedIndex = 1;
         
@@ -50,7 +50,7 @@ public class TrackableSettingsEditor : Editor
             m_FusionProviderType.intValue = (int)FusionProviderType.OPTIMIZE_IMAGE_TARGETS_AND_VUMARKS;
         else
             m_FusionProviderType.intValue = (int)FusionProviderType.OPTIMIZE_MODEL_TARGETS_AND_SMART_TERRAIN;
-        
+        */
         serializedObject.ApplyModifiedProperties();
     }
 
