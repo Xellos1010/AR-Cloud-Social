@@ -65,7 +65,14 @@ public class TakePictureGalleryScreenshot : MonoBehaviour
 
     void ToggleMenuBarAlpha(bool onOff)
     {
-        MenuBarStateManager.SetAlphaTo(onOff ? 1 : 0);
+        try
+        {
+            MenuBarStateManager.SetAlphaTo(onOff ? 1 : 0);
+        }
+        catch
+        {
+            Debug.Log("MenuBarStateManager.SetAlphaTo failed");
+        }
         try
         {
             GameObject[] SceneObjects = UnityEngine.SceneManagement.SceneManager.GetSceneByName("Main").GetRootGameObjects();

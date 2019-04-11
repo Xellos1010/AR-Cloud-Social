@@ -169,7 +169,7 @@ public class instructions : MonoBehaviour
         }
         catch
         {
-            Debug.Log("No touch detected");
+            //Debug.Log("No touch detected");
         }
         
         /*if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)

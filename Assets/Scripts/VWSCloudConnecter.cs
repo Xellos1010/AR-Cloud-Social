@@ -3,6 +3,8 @@ using System.Collections;
 using System;
 using System.Collections.Generic;
 using UnityEngine.Advertisements;
+using UnityEngine.Networking;
+using UnityEditor;
 
 enum phpModeSelet
 {
@@ -28,11 +30,9 @@ public class VWSCloudConnecter : MonoBehaviour {
         }
     }
     private static VWSCloudConnecter _instance;
-    //string uploadURL = "Insert imageupload.php web address here";
-    //string mainURL = "Insert main.php web address here";
 
-    string uploadURL = "http://www.augmentourworld.com/Vuphoria/php/imageupload.php";
-    string mainURL = "http://www.augmentourworld.com/Vuphoria/php/main.php";
+    string uploadURL = "http://evanmccall.info/phpVuf/imageupload.php";
+    string mainURL = "http://evanmccall.info/phpVuf/main.php";
     public ContentTypeEnum contentType;
     string webURL;
     string videoURL;
@@ -51,7 +51,8 @@ public class VWSCloudConnecter : MonoBehaviour {
     public UnityEngine.UI.Text PanelText;
     public UnityEngine.UI.Dropdown targetIDDropdown;
     public UnityEngine.UI.RawImage CapturePreview;
-
+    public Dictionary<string, string> targetNameToID;
+    public SetTargetInfo targetInfoArea;
     public GameObject[] AreYouSureWindows;
 
     void Awake()
@@ -59,6 +60,28 @@ public class VWSCloudConnecter : MonoBehaviour {
         _instance = this;
         if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name.Contains("Manage"))
             GetAllImageTargetIDS();
+    }
+
+    private void OnEnable()
+    {
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name.Contains("Manage"))
+            targetIDDropdown.onValueChanged.AddListener(delegate {
+                DropdownValueChanged(targetIDDropdown);
+            });
+    }
+
+    private void OnDisable()
+    {
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name.Contains("Manage"))
+            targetIDDropdown.onValueChanged.RemoveAllListeners();
+    }
+
+    //Ouput the new value of the Dropdown into Text
+    void DropdownValueChanged(UnityEngine.UI.Dropdown change)
+    {
+        //Populate Info On Target;
+        Debug.Log(change.value);
+        StartCoroutine(GetTargetSummaryByID(targetIDs[change.value]));
     }
 
     public void ShowAd()
@@ -94,9 +117,10 @@ public class VWSCloudConnecter : MonoBehaviour {
         Debug.Log("Setting Dropdown Informations");
         if (dropDownLoading != null)
         {
-            dropDownLoading.SetActive(false);            
+            dropDownLoading.SetActive(false);
         }
         targetIDDropdown.AddOptions(targetIDs);
+        StartCoroutine(GetTargetSummaryByID(targetIDs[0]));
     }
 
     void UpdateDropdownItems()
@@ -139,43 +163,40 @@ public class VWSCloudConnecter : MonoBehaviour {
         }
         return "";
     }
-
-    string uploadImageURLFBShare = "http://www.augmentourworld.com/Vuphoria/images/";
-
+    
     IEnumerator UploadFileCo()
     {
         StaticPanelManager.LoadIngameScene("Upload Progress");
         //TODO Change the Main Bar Light to Yellow
         WriteToPanel("Uploading Photo To Database");
 
-		ShowAd(); /// evil ad plug while uploading  <---- here ///
+		ShowAd(); /// evil ad plug while uploading
 
         byte[] bytes = previewImage.EncodeToJPG();
         WWWForm postForm = new WWWForm();
         postForm.AddBinaryData("theFile", bytes, ImageTitle.text+".jpg", "text/plain");
         postForm.AddField("meta", BuildMetaData());
-        WWW upload = new WWW(uploadURL, postForm);
-        yield return upload;
-        if (upload.error == null)
+        using (UnityWebRequest upload = UnityWebRequest.Post(uploadURL, postForm))
         {
-            WriteToPanel("upload done :" + upload.text);
-            //TODO Add Parse for Target ID (added target: TargetID)
-            string targetID = ParseForTargetID(upload.text);
-            Debug.Log("targetID = " + targetID);
-            Debug.Log(upload.text);
-            
-            //TODO call menu bar to Blink the ImageUploadVuphoria light yellow
-            ChangeMainBarLightYellow();
-            //TODO Create a gameObject and Dont Destroy on Load - Have it run a check every 2 seconds on the target ID and send message when it is found
-            //StartCoroutine(GetTargetIDInfo(targetID)); // TestingCode
-            CreateTargetIDChecker(targetID);
-            PlayerPrefs.SetString("ViewInstructions", "true");
-        }
-        else
-        {
-            //TODO Change Upload Light to Red if the target upload failed
-            WriteToPanel("Error during upload: " + upload.error);
-            ChangeMainBarLightRed();
+            yield return upload.SendWebRequest();
+            if (upload.isNetworkError || upload.isHttpError)
+            {
+                Debug.Log(upload.error);
+                //TODO Change Upload Light to Red if the target upload failed
+                WriteToPanel("Error during upload: " + upload.error);
+                ChangeMainBarLightRed();
+            }
+            else
+            {
+                //WriteToPanel("upload done :" + upload.downloadHandler.text);
+                //TODO Add Parse for Target ID (added target: TargetID)
+                Debug.Log(upload.downloadHandler.text);
+                string targetID = ParseForTargetID(upload.downloadHandler.text);
+                Debug.Log("targetID = " + targetID);
+                ChangeMainBarLightYellow();
+                CreateTargetIDChecker(targetID);
+                PlayerPrefs.SetString("ViewInstructions", "true");
+            }
         }
     }
 
@@ -245,24 +266,31 @@ public class VWSCloudConnecter : MonoBehaviour {
         Debug.Log("Getting all Target ID's");
         WWWForm postForm = new WWWForm();
         postForm.AddField("select", phpModeSelet.GetAllTargets.ToString());
-        WWW getTargetIDs = new WWW(mainURL, postForm);
-        yield return getTargetIDs;
-        if (getTargetIDs.error == null)
+        using (UnityWebRequest getTargetIDs = UnityWebRequest.Post(mainURL, postForm))
         {
-            WriteToPanel("Getting Target ID's done :" + getTargetIDs.text);
-            targetIDs = ParseReturnString(getTargetIDs.text);
-            for(int i = targetIDs.Count-1; i > 0; i--)
+            yield return getTargetIDs.SendWebRequest();
+            if (getTargetIDs.isNetworkError || getTargetIDs.isHttpError)
             {
-                if (String.IsNullOrEmpty(targetIDs[i]))
-                {
-                    targetIDs.RemoveAt(i);
-                }
+                Debug.Log(getTargetIDs.error);
+                WriteToPanel("Error during Getting Target ID's: " + getTargetIDs.error);
             }
-            AppendToPanelText(targetIDs.ToString());
-            SetDropdownItems();
+            else
+            {
+                Debug.Log("Form upload complete!");
+                Debug.Log("getTargetIDs.text = " + getTargetIDs.downloadHandler.text);
+                WriteToPanel("Getting Target ID's done :" + getTargetIDs.downloadHandler.text);
+                targetIDs = ParseReturnString(getTargetIDs.downloadHandler.text);
+                for (int i = targetIDs.Count - 1; i > 0; i--)
+                {
+                    if (String.IsNullOrEmpty(targetIDs[i]))
+                    {
+                        targetIDs.RemoveAt(i);
+                    }
+                }
+                AppendToPanelText(targetIDs.ToString());
+                SetDropdownItems();
+            }
         }
-        else
-            WriteToPanel("Error during Getting Target ID's: " + getTargetIDs.error);
     }
 
     IEnumerator GetTargetIDSummary()
@@ -292,19 +320,35 @@ public class VWSCloudConnecter : MonoBehaviour {
 
     }
 
+    internal IEnumerator GetTargetSummaryByID(string target)
+    {
+        yield return GetTargetIDInfo(target);
+        //Debug.Log(jsonTargetSummary.Print(true));
+        targetInfoArea.SetTargetInfoText(jsonTargetSummary["target_record"]["name"].ToString(), jsonTargetSummary["target_record"]["tracking_rating"].ToString(), jsonTargetSummary["target_record"]["width"].ToString());
+    }
+
     IEnumerator GetTargetIDInfo(string targetID)
     {
+        Debug.Log("Getting Info on Target ID " + targetID);
         WWWForm postForm = new WWWForm();
         postForm.AddField("select", phpModeSelet.GetTargetInfo.ToString());
         postForm.AddField("targetID", targetID);
-        WWW getTargetIDs = new WWW(mainURL, postForm);
-        Debug.Log("Getting target ID Info. targetID = " + targetID+ " url = " + getTargetIDs.url);
-        yield return getTargetIDs;
-        if (getTargetIDs.error == null)
+        using (UnityWebRequest www = UnityWebRequest.Post(mainURL, postForm))
         {
-            Debug.Log("getTargetIDs.text = " + getTargetIDs.text);            
-            jsonTargetSummary = new JSONObject(getTargetIDs.text);
-
+            yield return www.SendWebRequest();
+            if (www.isNetworkError || www.isHttpError)
+            {
+                Debug.Log(www.error);
+            }
+            else
+            {
+                jsonTargetSummary = new JSONObject(www.downloadHandler.text);
+                /*Debug.Log("Form upload complete!");
+                Debug.Log("getTargetIDs.text = " + www.downloadHandler.text);
+                
+                Debug.Log(jsonTargetSummary.Print(true));
+                Debug.Log(jsonTargetSummary["target_record"]["name"]);*/
+            }
         }
     }
 
@@ -558,3 +602,27 @@ public class VWSCloudConnecter : MonoBehaviour {
         previewImageDisplayChoose.texture = image;
     }
 }
+
+#if UNITY_EDITOR
+[CustomEditor(typeof(VWSCloudConnecter))]
+public class VWSCloudConnecterEditor:Editor
+{
+    VWSCloudConnecter _target;
+
+    private void OnEnable()
+    {
+        _target = (VWSCloudConnecter)target;
+    }
+
+    public override void OnInspectorGUI()
+    {
+        base.OnInspectorGUI();
+        if (GUILayout.Button("Get Info on TargetID"))
+            _target.GetTargetSummaryByID("de2f2b6ae98343aa88825388741594f1");
+        if (GUILayout.Button("Upload Image Target"))
+        {
+            _target.UploadFile();
+        }
+    }
+}
+#endif
