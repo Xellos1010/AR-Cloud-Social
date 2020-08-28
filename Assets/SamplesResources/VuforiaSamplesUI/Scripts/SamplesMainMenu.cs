@@ -39,7 +39,7 @@ public class SamplesMainMenu : MonoBehaviour
     public const string MenuScene = "1-Menu";
     public const string LoadingScene = "2-Loading";
 
-    AboutScreenInfo aboutScreenInfo;
+    //AboutScreenInfo aboutScreenInfo;
 
     #endregion // PUBLIC_MEMBERS
 
@@ -50,11 +50,11 @@ public class SamplesMainMenu : MonoBehaviour
         // reset about screen state variable to false when returning from AR scene
         isAboutScreenVisible = false;
 
-        if (aboutScreenInfo == null)
+        /*if (aboutScreenInfo == null)
         {
             // initialize if null
             aboutScreenInfo = new AboutScreenInfo();
-        }
+        }*/
     }
 
     #endregion // MONOBEHAVIOUR_METHODS
@@ -118,10 +118,10 @@ public class SamplesMainMenu : MonoBehaviour
                 break;
         }
 
-        LoadingScreen.SceneToLoad = "3-" + menuItem.ToString();
+        //LoadingScreen.SceneToLoad = "3-" + menuItem.ToString();
 
-        AboutTitle.text = aboutScreenInfo.GetTitle(menuItem.ToString());
-        AboutDescription.text = aboutScreenInfo.GetDescription(menuItem.ToString());
+        //AboutTitle.text = aboutScreenInfo.GetTitle(menuItem.ToString());
+        //AboutDescription.text = aboutScreenInfo.GetDescription(menuItem.ToString());
 
         AboutCanvas.transform.parent.transform.position = Vector3.zero; // move canvas into position
         AboutCanvas.sortingOrder = 2; // bring canvas in front of main menu

@@ -6,8 +6,8 @@ public class AutoZoom : MonoBehaviour {
 
 	void Start () 
 	{
-		VuforiaBehaviour.Instance.RegisterVuforiaStartedCallback(OnVuforiaStarted);
-		VuforiaBehaviour.Instance.RegisterOnPauseCallback(OnPaused);
+		//VuforiaBehaviour.Instance.RegisterVuforiaStartedCallback(OnVuforiaStarted);
+		//VuforiaBehaviour.Instance.RegisterOnPauseCallback(OnPaused);
 	}
 	
 	private void OnVuforiaStarted()

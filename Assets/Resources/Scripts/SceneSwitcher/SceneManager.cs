@@ -1,9 +1,12 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine.SceneManagement;
+using System;
 
-public static class SceneManager{
+public static class SceneManager
+{
 
-    public static Dictionary<string,SceneObject> InGameScenes
+    public static Dictionary<string, SceneObject> InGameScenes
     {
         get
         {
@@ -23,7 +26,7 @@ public static class SceneManager{
 
     public static void LoadApplicationSceneAdditive(string sceneName)
     {
-        UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName,UnityEngine.SceneManagement.LoadSceneMode.Additive);
+        UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName, UnityEngine.SceneManagement.LoadSceneMode.Additive);
     }
 
     public static void UnloadApplicationScene(string sceneName)
@@ -48,7 +51,12 @@ public static class SceneManager{
         {
             Debug.Log("Scene Does not contain " + sceneName);
         }
-        
+
+    }
+
+    internal static AsyncOperation LoadSceneAsync(int v, LoadSceneMode loadSceneMode)
+    {
+        return UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(v,loadSceneMode);
     }
 
     public static void LoadIngameScene(SceneObject scene)
@@ -65,9 +73,15 @@ public static class SceneManager{
 
     }
 
+    internal static AsyncOperation UnloadSceneAsync(string sceneToUnload)
+    {
+        return UnityEngine.SceneManagement.SceneManager.UnloadSceneAsync(sceneToUnload);
+    }
+
     static void SetSceneState(string scene, bool sceneState)
     {
-        try {
+        try
+        {
             InGameScenes[scene].gameObject.SetActive(sceneState);
         }
         catch { Debug.Log("scene is no longer accessible"); }
@@ -75,9 +89,9 @@ public static class SceneManager{
 
     public static void DisableAllScenes()
     {
-        foreach(string s in InGameScenes.Keys)
+        foreach (string s in InGameScenes.Keys)
         {
-            SetSceneState(s,false);
+            SetSceneState(s, false);
         }
     }
 

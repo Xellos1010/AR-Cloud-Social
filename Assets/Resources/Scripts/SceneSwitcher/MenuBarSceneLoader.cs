@@ -24,7 +24,7 @@ public class MenuBarSceneLoader : SceneLoadPass
     public Color pendingButtonColor;
     public Color errorButtonColor;
     ButtonStateManager currentPendingButton;
-    public iTween.EaseType easeType = iTween.EaseType.easeOutExpo;
+    //public iTween.EaseType easeType = iTween.EaseType.easeOutExpo;
     //public string currentlyActiveMainScene = "MainMenu";
     public GameObject currentActiveButton; //Currently setting starting active button to main menu
 
@@ -42,20 +42,6 @@ public class MenuBarSceneLoader : SceneLoadPass
             SetActiveButton(Button);
             LoadSceneApplicationWithWait(Button.name, arrowTransitionTime); // Load the loading screen but wait for the arrow to finish transitioning to have a smoother experience
         }
-    }
-
-    bool CheckLoadingFinished()
-    {
-        GameObject[] SceneObjects = UnityEngine.SceneManagement.SceneManager.GetSceneByName("Loading").GetRootGameObjects();
-        foreach (GameObject rootObject in SceneObjects)
-        {
-            if (rootObject.name.Contains("LoadingManager"))
-            {
-                Debug.Log("" + rootObject.GetComponent<LoadingScreen>().mChangeLevel);
-                return rootObject.GetComponent<LoadingScreen>().mChangeLevel;
-            }
-        }
-        throw new System.Exception("There was an issue accessing LoadingManager. Ensure it's added to your scene builds and loaded before the MainBar Scene \"Main\"");
     }
 
     public void LoadMainScene(int buttonNumber) //The button Child Scene to Load
@@ -171,8 +157,8 @@ public class MenuBarSceneLoader : SceneLoadPass
         GameObject[] SceneObjects = UnityEngine.SceneManagement.SceneManager.GetSceneByName("Loading").GetRootGameObjects();
         foreach (GameObject rootObject in SceneObjects)
         {
-            if (rootObject.name.Contains("LoadingManager"))
-                rootObject.GetComponent<LoadingScreen>().SetLevelToLoad(sceneToLoad);
+            /*if (rootObject.name.Contains("LoadingManager"))
+                rootObject.GetComponent<LoadingScreen>().SetLevelToLoad(sceneToLoad);*/
         }
     }
 
@@ -181,8 +167,8 @@ public class MenuBarSceneLoader : SceneLoadPass
         GameObject[] SceneObjects = UnityEngine.SceneManagement.SceneManager.GetSceneByName("Loading").GetRootGameObjects();
         foreach (GameObject rootObject in SceneObjects)
         {
-            if (rootObject.name.Contains("LoadingManager"))
-                rootObject.GetComponent<LoadingScreen>().SetLevelToLoad(sceneToLoad, amountToWait);
+            /*if (rootObject.name.Contains("LoadingManager"))
+                rootObject.GetComponent<LoadingScreen>().SetLevelToLoad(sceneToLoad, amountToWait);*/
         }
     }
 
@@ -224,7 +210,7 @@ public class MenuBarSceneLoader : SceneLoadPass
     {
         float placeOnScreen = targetButton.GetComponent<RectTransform>().anchoredPosition.x;
  
-        Hashtable ValueToArguments = iTween.Hash(
+        /*Hashtable ValueToArguments = iTween.Hash(
             "from", ArrowMovementBar.offsetMin.x,
             "to", placeOnScreen,
             "time", arrowTransitionTime,
@@ -232,7 +218,7 @@ public class MenuBarSceneLoader : SceneLoadPass
             "onupdate", "UpdateArrowValue",
             "onupdatetarget", gameObject
             );
-        iTween.ValueTo(gameObject, ValueToArguments);
+        iTween.ValueTo(gameObject, ValueToArguments);*/
         Debug.Log("itween Done");
     }
 
