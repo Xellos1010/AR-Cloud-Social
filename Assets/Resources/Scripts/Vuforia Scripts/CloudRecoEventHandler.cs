@@ -37,7 +37,7 @@ public class CloudRecoEventHandler : MonoBehaviour, ICloudRecoEventHandler
     /// <summary>
     /// The scan-line rendered in overlay when Cloud Reco is in scanning mode.
     /// </summary>
-    public ScanLine scanLine;
+    //public ScanLine scanLine;
     /// <summary>
     /// Cloud Reco error UI elements.
     /// </summary>
@@ -212,6 +212,7 @@ public class CloudRecoEventHandler : MonoBehaviour, ICloudRecoEventHandler
     #region PRIVATE_METHODS
     private void ShowScanLine(bool show)
     {
+        /*
         // Toggle scanline rendering
         if (scanLine != null)
         {
@@ -231,6 +232,7 @@ public class CloudRecoEventHandler : MonoBehaviour, ICloudRecoEventHandler
                     scanLineRenderer.enabled = false;
             }
         }
+        */
     }
 
     private void ShowError(string title, string msg)

@@ -91,10 +91,12 @@ public class VWSCloudConnecter : MonoBehaviour {
 
     public void ShowAd()
     {
+        //TODO Advertisement Implementation
+        /*
         if (Advertisement.IsReady())
         {
             Advertisement.Show();
-        }
+        }*/
     }
 
 

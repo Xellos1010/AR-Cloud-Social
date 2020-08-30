@@ -3,21 +3,17 @@ using Vuforia;
 using System.Collections;
 using System.IO;
 
-public class TakePhotoVuforiaCamera : MonoBehaviour, ITrackerEventHandler
+public class TakePhotoVuforiaCamera : TrackableBehaviour
 {
     private Image.PIXEL_FORMAT m_PixelFormat = Image.PIXEL_FORMAT.RGBA8888;//Image.PIXEL_FORMAT.RGB888;
     private bool m_RegisteredFormat = false;
     private bool m_LogInfo = true;
     private bool paused = false;
     public Texture2D imageCaptured;
-
+    VuforiaARController qcarBehaviour;
     void Start()
     {
-        VuforiaBehaviour qcarBehaviour = (VuforiaBehaviour)FindObjectOfType(typeof(VuforiaBehaviour));
-        if (qcarBehaviour)
-        {
-            qcarBehaviour.RegisterTrackablesUpdatedCallback(OnTrackablesUpdated);
-        }
+        VuforiaARController.Instance.RegisterTrackablesUpdatedCallback(OnTrackablesUpdated);
     }
 
     public void OnInitialized()
@@ -88,11 +84,16 @@ public class TakePhotoVuforiaCamera : MonoBehaviour, ITrackerEventHandler
         }
     }
 
+    protected override void InternalUnregisterTrackable()
+    {
+        throw new System.NotImplementedException();
+    }
+
     /*IEnumerator RotateandSetTexture(Texture TextureToFlip)
     {
         Texture2D tex = new Texture2D(TextureToFlip.width, TextureToFlip.height);
         yield return UtilityFunctions.SaveAsFlippedTexture2D(TextureToFlip, false, true);
 
     }*/
-    
+
 }

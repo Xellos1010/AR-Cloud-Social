@@ -49,8 +49,8 @@ public class CloudRecoTrackableEventHandler : MonoBehaviour, ITrackableEventHand
         {
             OnTrackingFound();
         }
-        else if (previousStatus == TrackableBehaviour.Status.UNKNOWN &&
-                 newStatus == TrackableBehaviour.Status.NOT_FOUND)
+        else if (previousStatus == TrackableBehaviour.Status.NO_POSE &&
+                 newStatus == TrackableBehaviour.Status.NO_POSE)
         {
             // Ignore this specific combo
             return;
