@@ -58,84 +58,84 @@ public class MoveToLoop : MonoBehaviour {
 
     public void StopTween()
     {
-        iTween.Stop();
+        //iTween.Stop();
     }
 
     public void StartTweenMovement()
     {
-        iTween.ValueTo(gameObject, tweenParamsStartMovement());
+        //iTween.ValueTo(gameObject, tweenParamsStartMovement());
     }
 
-    Hashtable tweenParamsStartMovement()
-    {
-        Hashtable returnValue = new Hashtable();
-        returnValue.Add("from", moveFromY);
-        returnValue.Add("to", moveToY);
-        returnValue.Add("time", time);
-        returnValue.Add("easetype", iTween.EaseType.easeInQuad);
-        returnValue.Add("onupdate", "UpdateY");
-        returnValue.Add("onupdatetarget", gameObject);
-        returnValue.Add("oncomplete", "ResetTweenMovement");
-        returnValue.Add("oncompletetarget", gameObject);
-        return returnValue;
-    }
+    //Hashtable tweenParamsStartMovement()
+    //{
+    //    Hashtable returnValue = new Hashtable();
+    //    returnValue.Add("from", moveFromY);
+    //    returnValue.Add("to", moveToY);
+    //    returnValue.Add("time", time);
+    //    returnValue.Add("easetype", iTween.EaseType.easeInQuad);
+    //    returnValue.Add("onupdate", "UpdateY");
+    //    returnValue.Add("onupdatetarget", gameObject);
+    //    returnValue.Add("oncomplete", "ResetTweenMovement");
+    //    returnValue.Add("oncompletetarget", gameObject);
+    //    return returnValue;
+    //}
 
     public void ResetTweenMovement()
     {
-        iTween.ValueTo(gameObject, tweenParamsResetMovement());
+        //iTween.ValueTo(gameObject, tweenParamsResetMovement());
     }
 
-    Hashtable tweenParamsResetMovement()
-    {
-        Hashtable returnValue = new Hashtable();
-        returnValue.Add("from", moveToY);
-        returnValue.Add("to", moveFromY);
-        returnValue.Add("time", time);
-        returnValue.Add("easetype", iTween.EaseType.easeOutQuad);
-        returnValue.Add("onupdate", "UpdateY");
-        returnValue.Add("onupdatetarget", gameObject);
-        returnValue.Add("oncomplete", "StartTweenMovement");
-        returnValue.Add("oncompletetarget", gameObject);
-        return returnValue;
-    }
+    //Hashtable tweenParamsResetMovement()
+    //{
+    //    Hashtable returnValue = new Hashtable();
+    //    returnValue.Add("from", moveToY);
+    //    returnValue.Add("to", moveFromY);
+    //    returnValue.Add("time", time);
+    //    returnValue.Add("easetype", iTween.EaseType.easeOutQuad);
+    //    returnValue.Add("onupdate", "UpdateY");
+    //    returnValue.Add("onupdatetarget", gameObject);
+    //    returnValue.Add("oncomplete", "StartTweenMovement");
+    //    returnValue.Add("oncompletetarget", gameObject);
+    //    return returnValue;
+    //}
 
     public void StartTweenAlpha()
     {
-        iTween.ValueTo(gameObject, tweenParamsStartAlpha());
+        //iTween.ValueTo(gameObject, tweenParamsStartAlpha());
     }
 
-    Hashtable tweenParamsStartAlpha()
-    {
-        Hashtable returnValue = new Hashtable();
-        returnValue.Add("from", alphaFrom);
-        returnValue.Add("to", alphaTo);
-        returnValue.Add("time", time);
-        returnValue.Add("easetype", iTween.EaseType.easeInQuad);
-        returnValue.Add("onupdate", "UpdateAlpha");
-        returnValue.Add("onupdatetarget", gameObject);
-        returnValue.Add("oncomplete", "ResetTweenAlpha");
-        returnValue.Add("oncompletetarget", gameObject);
-        return returnValue;
-    }
+    //Hashtable tweenParamsStartAlpha()
+    //{
+    //    Hashtable returnValue = new Hashtable();
+    //    returnValue.Add("from", alphaFrom);
+    //    returnValue.Add("to", alphaTo);
+    //    returnValue.Add("time", time);
+    //    returnValue.Add("easetype", iTween.EaseType.easeInQuad);
+    //    returnValue.Add("onupdate", "UpdateAlpha");
+    //    returnValue.Add("onupdatetarget", gameObject);
+    //    returnValue.Add("oncomplete", "ResetTweenAlpha");
+    //    returnValue.Add("oncompletetarget", gameObject);
+    //    return returnValue;
+    //}
 
     public void ResetTweenAlpha()
     {
-        iTween.ValueTo(gameObject, tweenParamsResetAlpha());
+        //iTween.ValueTo(gameObject, tweenParamsResetAlpha());
     }
 
-    Hashtable tweenParamsResetAlpha()
-    {
-        Hashtable returnValue = new Hashtable();
-        returnValue.Add("from", alphaTo);
-        returnValue.Add("to", alphaFrom);
-        returnValue.Add("time", time);
-        returnValue.Add("easetype", iTween.EaseType.easeOutQuad);
-        returnValue.Add("onupdate", "UpdateAlpha");
-        returnValue.Add("onupdatetarget", gameObject);
-        returnValue.Add("oncomplete", "StartTweenAlpha");
-        returnValue.Add("oncompletetarget", gameObject);
-        return returnValue;
-    }
+    //Hashtable tweenParamsResetAlpha()
+    //{
+    //    Hashtable returnValue = new Hashtable();
+    //    returnValue.Add("from", alphaTo);
+    //    returnValue.Add("to", alphaFrom);
+    //    returnValue.Add("time", time);
+    //    returnValue.Add("easetype", iTween.EaseType.easeOutQuad);
+    //    returnValue.Add("onupdate", "UpdateAlpha");
+    //    returnValue.Add("onupdatetarget", gameObject);
+    //    returnValue.Add("oncomplete", "StartTweenAlpha");
+    //    returnValue.Add("oncompletetarget", gameObject);
+    //    return returnValue;
+    //}
 
     public void UpdateY(float newValue)
     {
