@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ConsoleOutput : SingletonBehaviour<ConsoleOutput>
+public class UIConsoleOutput : SingletonBehaviour<UIConsoleOutput>
 {
     public TMPro.TextMeshProUGUI consoleTextObject;
     public void SetConsolePanelTextTo(string text)

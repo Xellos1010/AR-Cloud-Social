@@ -3,6 +3,7 @@ using System.Collections;
 using System;
 using System.Collections.Generic;
 using UnityEngine.Advertisements;
+using System.Threading.Tasks;
 #if UNITY_EDITOR
 using UnityEditor;
 [CustomEditor(typeof(VWSCloudConnecter))]
@@ -95,6 +96,17 @@ public class VWSCloudConnecter : SingletonBehaviour<VWSCloudConnecter> {
         //    GetAllImageTargetIDS();
     }
 
+    async void Start()
+    {
+        await TestGetTargetSummary();
+    }
+
+    private static async Task TestGetTargetSummary()
+    {
+        VWSCloudConnecterService service = new VWSCloudConnecterService();
+        UIConsoleOutput.Instance.AppendTextToConsole(await service.GetTargetIDSummary("8a26156f7bdf43cfbe605039e23b0f95"));
+    }
+
     public void ShowAd()
     {
         if (Advertisement.IsReady())
@@ -155,12 +167,12 @@ public class VWSCloudConnecter : SingletonBehaviour<VWSCloudConnecter> {
     }
     public void SetConsolePanelTextTo(string text)
     {
-        ConsoleOutput.instance.SetConsolePanelTextTo(text);
+        UIConsoleOutput.instance.SetConsolePanelTextTo(text);
     }
 
     public void AppendTextToConsole(string text)
     {
-        ConsoleOutput.instance.AppendTextToConsole (text);
+        UIConsoleOutput.instance.AppendTextToConsole (text);
     }
 
   //  IEnumerator UploadFileCo()
