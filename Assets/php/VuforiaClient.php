@@ -8,8 +8,8 @@
 
 class VuforiaClient {
     const JSON_CONTENT_TYPE = 'application/json';
-    const ACCESS_KEY = 'e9380d90b19fef7aa0e6ad12593c699a29003d34';
-    const SECRET_KEY = '276d0916fb5b51db9eb72e77e54318128a8537a8';
+    const ACCESS_KEY = '';
+    const SECRET_KEY = '';
     const BASE_URL = 'https://vws.vuforia.com';
     const TARGETS_PATH = '/targets';
     const SUMMARY_PATH = '/summary';
